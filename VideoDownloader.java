@@ -7,7 +7,7 @@ import android.os.Environment;
 import android.widget.Toast;
 
 /**
- * Downloads an MP4 from YOUR personal server into public storage:
+ * Downloads video files from server/third-party sources into public storage:
  *   /Movies/Cinedor/<title>_<quality>.mp4
  * with a system notification (progress + "complete").
  */
@@ -17,12 +17,12 @@ public final class VideoDownloader {
 
     /** @return DownloadManager id, or -1 if it could not start. */
     public static long download(Context ctx, String url, String title, String quality) {
-        if (url == null || !url.startsWith(ApiConfig.BASE_URL)) {
-            Toast.makeText(ctx, "Only files from your own server can be downloaded", Toast.LENGTH_LONG).show();
+        if (url == null || url.isEmpty()) {
+            Toast.makeText(ctx, "Invalid download URL", Toast.LENGTH_LONG).show();
             return -1;
         }
         if (url.toLowerCase().contains(".m3u8")) {
-            Toast.makeText(ctx, "HLS streams can't be downloaded — choose an MP4 quality", Toast.LENGTH_LONG).show();
+            Toast.makeText(ctx, "HLS streams can't be downloaded directly — choose an MP4 source", Toast.LENGTH_LONG).show();
             return -1;
         }
         try {
@@ -38,7 +38,10 @@ public final class VideoDownloader {
                     .setAllowedOverMetered(true)
                     .setAllowedOverRoaming(false)
                     .setDestinationInExternalPublicDir(Environment.DIRECTORY_MOVIES, "Cinedor/" + fileName);
-            if (!ApiConfig.APP_TOKEN.isEmpty()) req.addRequestHeader("X-App-Token", ApiConfig.APP_TOKEN);
+            
+            if (!ApiConfig.APP_TOKEN.isEmpty() && url.startsWith(ApiConfig.BASE_URL)) {
+                req.addRequestHeader("X-App-Token", ApiConfig.APP_TOKEN);
+            }
 
             DownloadManager dm = (DownloadManager) ctx.getSystemService(Context.DOWNLOAD_SERVICE);
             return dm != null ? dm.enqueue(req) : -1;
