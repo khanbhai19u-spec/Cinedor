@@ -10,8 +10,8 @@ import java.nio.charset.StandardCharsets;
 /** Server address + optional token, and a tiny HTTP GET helper. */
 public final class ApiConfig {
 
-    /** Your personal server. Same Wi-Fi: http://<phone/PC IP>:3000  (online: use https://) */
-    public static final String BASE_URL = "http://192.168.1.100:3000";
+    /** Your personal server. Updated with your Termux server IP and port */
+    public static final String BASE_URL = "http://192.168.0.104:5000";
 
     /** Same value as APP_TOKEN on the server. Leave "" if you did not set a token. */
     public static final String APP_TOKEN = "";
