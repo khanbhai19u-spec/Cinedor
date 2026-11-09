@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Cinedor</string>
+    <string name="my_videos">My Videos</string>
+    <string name="refresh">Refresh</string>
+    <string name="watch">▶  Watch</string>
+    <string name="download">⬇  Download</string>
+    <string name="poster">Poster</string>
+    <string name="select_watch">Select quality to watch</string>
+    <string name="select_download">Select quality to download</string>
+    <string name="no_videos">No videos yet. Add folders to the server\'s media folder.</string>
+    <string name="server_error">Can\'t reach your server: %1$s</string>
+</resources>
