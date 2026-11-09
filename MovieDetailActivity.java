@@ -37,23 +37,24 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/** Shows one of your videos; Watch / Download open a quality bottom sheet. */
+/** Shows TMDB video options fetched dynamically from Python Server; Watch / Download open quality sheet. */
 public class MovieDetailActivity extends AppCompatActivity {
 
     public static final String EXTRA_VIDEO_ID = "video_id";
     private static final int REQ_STORAGE = 41;
 
-    /** One playable file returned by the server. */
+    /** One playable file format returned by Python Server. */
     static class Quality {
         final String label, url, type;
         final long size;
         final boolean downloadable;
+
         Quality(JSONObject o) {
-            label = o.optString("quality", "Original");
+            label = o.optString("quality", "HD / Auto");
             url = o.optString("url");
-            type = o.optString("type", "mp4");
-            size = o.optLong("size", 0);
-            downloadable = o.optBoolean("downloadable", false);
+            type = o.optString("ext", "mp4");
+            size = 0; // External streams don't return raw byte size
+            downloadable = true; // All mp4 formats can be downloaded
         }
     }
 
@@ -83,38 +84,53 @@ public class MovieDetailActivity extends AppCompatActivity {
         btnWatch.setOnClickListener(v -> showQualitySheet(true));
         btnDownload.setOnClickListener(v -> showQualitySheet(false));
 
-        String id = getIntent().getStringExtra(EXTRA_VIDEO_ID);
-        if (id == null) { finish(); return; }
-        loadVideo(id);
+        String tmdbId = getIntent().getStringExtra(EXTRA_VIDEO_ID);
+        if (tmdbId == null || tmdbId.isEmpty()) { 
+            finish(); 
+            return; 
+        }
+        loadVideo(tmdbId);
     }
 
-    private void loadVideo(String id) {
+    private void loadVideo(String tmdbId) {
         setLoading(true);
         io.execute(() -> {
             try {
-                JSONObject json = new JSONObject(ApiConfig.get("/api/videos/" + java.net.URLEncoder.encode(id, "UTF-8")));
-                if (!json.optBoolean("success")) throw new Exception(json.optString("error", "Not found"));
-                title = json.optString("title");
-                String year = json.optString("year", "");
-                String desc = json.optString("description", "");
-                JSONArray arr = json.getJSONArray("qualities");
+                // Python Server-এর API endpoint: /movie?id=TMDB_ID
+                String jsonStr = ApiConfig.get("/movie?id=" + tmdbId);
+                JSONObject json = new JSONObject(jsonStr);
+
+                if (!"success".equalsIgnoreCase(json.optString("status"))) {
+                    throw new Exception("Movie stream links not found");
+                }
+
+                title = json.optString("title", "Movie " + tmdbId);
+                String posterUrl = json.optString("thumbnail", "");
+                JSONArray arr = json.getJSONArray("formats");
+
                 List<Quality> list = new ArrayList<>();
-                for (int i = 0; i < arr.length(); i++) list.add(new Quality(arr.getJSONObject(i)));
+                for (int i = 0; i < arr.length(); i++) {
+                    list.add(new Quality(arr.getJSONObject(i)));
+                }
+
                 main.post(() -> {
                     qualities.clear();
                     qualities.addAll(list);
                     tvTitle.setText(title);
-                    tvMeta.setText((year.isEmpty() || "null".equals(year) ? "" : year + "  •  ") + list.size() + " quality option(s)");
-                    tvDesc.setText(desc);
-                    tvDesc.setVisibility(desc.isEmpty() ? View.GONE : View.VISIBLE);
+                    tvMeta.setText("TMDB ID: " + tmdbId + "  •  " + list.size() + " stream options");
+                    tvDesc.setText("Ready to stream in high quality");
+                    tvDesc.setVisibility(View.VISIBLE);
                     setLoading(false);
                 });
-                String posterUrl = json.optString("poster", "");
-                if (!posterUrl.isEmpty() && !"null".equals(posterUrl)) loadPoster(posterUrl);
+
+                if (!posterUrl.isEmpty() && !"null".equals(posterUrl)) {
+                    loadPoster(posterUrl);
+                }
+
             } catch (Exception e) {
                 main.post(() -> {
                     setLoading(false);
-                    Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "Error fetching links: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
             }
         });
@@ -139,22 +155,28 @@ public class MovieDetailActivity extends AppCompatActivity {
         btnDownload.setEnabled(!on);
     }
 
-    /** Bottom sheet listing 360p / 720p / 1080p / Auto (HLS). */
+    /** Bottom sheet listing stream/download qualities. */
     private void showQualitySheet(boolean watchMode) {
         List<Quality> options = new ArrayList<>();
-        for (Quality q : qualities) if (watchMode || q.downloadable) options.add(q);
+        for (Quality q : qualities) {
+            if (watchMode || q.downloadable) options.add(q);
+        }
+        
         if (options.isEmpty()) {
-            Toast.makeText(this, watchMode ? "No playable file" : "HLS streams can't be downloaded — add an MP4", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, watchMode ? "No playable stream" : "No download options available", Toast.LENGTH_LONG).show();
             return;
         }
+
         BottomSheetDialog sheet = new BottomSheetDialog(this);
         View root = LayoutInflater.from(this).inflate(R.layout.sheet_quality, null);
         ((TextView) root.findViewById(R.id.sheetTitle)).setText(watchMode ? R.string.select_watch : R.string.select_download);
+        
         LinearLayout box = root.findViewById(R.id.sheetList);
         for (Quality q : options) {
             View row = LayoutInflater.from(this).inflate(R.layout.item_quality, box, false);
             ((TextView) row.findViewById(R.id.qLabel)).setText(q.label);
-            ((TextView) row.findViewById(R.id.qInfo)).setText("hls".equals(q.type) ? "Stream" : formatSize(q.size));
+            ((TextView) row.findViewById(R.id.qInfo)).setText(q.type.toUpperCase(Locale.US) + " • Direct Link");
+            
             row.setOnClickListener(v -> {
                 sheet.dismiss();
                 if (watchMode) play(q); else startDownload(q);
@@ -174,7 +196,6 @@ public class MovieDetailActivity extends AppCompatActivity {
     }
 
     private void startDownload(Quality q) {
-        // Android 9 and below need storage permission to write to public Movies/
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P
                 && ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             pendingDownload = q;
@@ -193,12 +214,6 @@ public class MovieDetailActivity extends AppCompatActivity {
             else Toast.makeText(this, "Storage permission needed to download", Toast.LENGTH_LONG).show();
             pendingDownload = null;
         }
-    }
-
-    static String formatSize(long b) {
-        if (b <= 0) return "";
-        if (b >= 1_000_000_000L) return String.format(Locale.US, "%.2f GB", b / 1e9);
-        return String.format(Locale.US, "%.0f MB", b / 1e6);
     }
 
     @Override
