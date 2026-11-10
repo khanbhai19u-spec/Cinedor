@@ -1,55 +1,44 @@
-# Cinedor — অটো মুভি অ্যাপ (Android)
+# CineDor — আধুনিক অটো মুভি অ্যাপ (Android)
 
-অ্যাপ খুললেই সব নিজে থেকে চলে আসে। কোনো সার্ভার, API key বা সেটআপ লাগে না।
-মুভিগুলো আসে **Internet Archive**-এর ফ্রি ও লিগ্যাল **পাবলিক-ডোমেইন** কালেকশন থেকে (`feature_films`, `animationandcartoons`)।
+অ্যাপ খুললেই মুভি, সিরিজ, অ্যানিমে আর K-Drama-র সব তথ্য **TMDB** থেকে নিজে চলে আসে। কোনো বিজ্ঞাপন নেই।
 
----
+## কী কী আছে
 
-## যা যা অটো হয়
-
-| ফিচার | কী হয় |
+| অংশ | কী হয় |
 |---|---|
-| ✨ **Today's Pick** | প্রতিবার অ্যাপ খুললে জনপ্রিয় মুভি থেকে একটা র‍্যান্ডম মুভি ব্যানারে দেখায় |
-| 🔥 **হোম রো** | Most Popular, Top Rated, Recently Added, Horror, Sci-Fi, Comedy, Film Noir, Action, Western, Drama, Romance, Animation: সব নিজে লোড হয় |
-| ⚡ **অফলাইন ক্যাশ** | শেষবার লোড হওয়া লিস্ট সেভ থাকে, তাই অ্যাপ সাথে সাথে খোলে। প্রতি ১ ঘণ্টায় লিস্ট নিজে রিফ্রেশ হয় |
-| 🖼 **পোস্টার ও তথ্য** | পোস্টার, সাল, দৈর্ঘ্য, জনরা আর বিবরণ নিজে আসে |
-| ▶️ **এক ট্যাপে প্লে** | Watch চাপলে সবচেয়ে ভালো কোয়ালিটি (১০৮০p পর্যন্ত) নিজে বেছে চালায়। লং-প্রেস করলে কোয়ালিটি বাছাই করা যায় |
-| ⏯ **অটো রিজিউম** | মাঝপথে বন্ধ করলে পরেরবার ঠিক সেখান থেকে চলে |
-| ▶️ **Continue Watching** | যেগুলো শেষ হয়নি সেগুলো হোমের উপরে থাকে। শেষ হলে নিজে সরে যায় |
-| ❤️ **My List** | পছন্দের মুভি সেভ করে রাখা যায় |
-| 🔍 **সার্চ + See all** | নাম বা জনরা দিয়ে খোঁজা যায়। নিচে স্ক্রল করলে আরও মুভি নিজে লোড হয় |
-| ⬇ **ডাউনলোড** | DownloadManager দিয়ে `Movies/Cinedor/` ফোল্ডারে নামে, নোটিফিকেশনসহ |
+| **Home** | বড় ব্যানার, জনরা চিপস, Browse by Language, Top 10 Today, Popular, দেশ অনুযায়ী New Releases, Coming Soon, Top Rated |
+| **Anime / K-Drama** | আলাদা ট্যাব, নিজস্ব Top 10 আর জনরা রো |
+| **মুভির পেজ** | ব্যাকড্রপ, রেটিং, বয়সসীমা, সময়, পরিচালক, অভিনেতা, সিজন ও এপিসোড, More Like This |
+| **ট্রেলার** | এক চাপে YouTube-এ খোলে |
+| **কোথায় দেখবে** | কোন লিগ্যাল সার্ভিসে মুভিটা আছে তা দেখায় |
+| **ফ্রি পুরো মুভি** | Internet Archive-এর পাবলিক-ডোমেইন মুভি Media3 ExoPlayer-এ চলে, সব কোয়ালিটিতে ডাউনলোড হয় |
+| **Profile** | My List, Continue Watching, Downloads |
+| **সার্চ** | মুভি, সিরিজ, অ্যানিমে |
 
----
+রো-গুলো ফোনে ক্যাশ থাকে, তাই অ্যাপ সাথে সাথে খোলে; প্রতি ঘণ্টায় নিজে রিফ্রেশ হয়।
 
-## APK বানানো (GitHub Actions)
+## APK বানানো
 
-1. GitHub-এ রিপোজিটরির **Actions** ট্যাবে যাও, তারপর **Build Cinedor Player (Java)** খোলো, তারপর **Run workflow** চাপো
-2. Version দাও (যেমন `2.0.0`, প্রতিবার আগেরটার চেয়ে বাড়াতে হবে)
-3. বিল্ড শেষ হলে **Releases**-এ `CinedorPlayer-v2.0.0.apk` পাওয়া যাবে। সেটা ফোনে ইনস্টল করো
+1. রিপোর **Settings → Secrets and variables → Actions**-এ `TMDB_API_KEY` নামে secret যোগ করো (একবারই লাগবে)।
+2. **Actions → Build CineDor (Java) → Run workflow**, Version দাও (প্রতিবার বাড়াতে হবে)।
+3. বিল্ড শেষে **Releases**-এ `CineDor-vX.Y.Z.apk` পাবে।
 
-ঐচ্ছিক: `KEYSTORE_BASE64` আর `KEYSTORE_PASSWORD` secret দিলে প্রতিটা আপডেট একই key দিয়ে সাইন হবে, তাই আগের অ্যাপের উপর সরাসরি আপডেট ইনস্টল করা যাবে।
+secret না দিলে Run workflow-এর `tmdb_key` ঘরেও key দেওয়া যায়। key কখনো রিপোতে commit করা হয় না; বিল্ডের সময় `Keys.java` ফাইলে বসে।
 
----
+ঐচ্ছিক: `KEYSTORE_BASE64` আর `KEYSTORE_PASSWORD` secret দিলে প্রতিটা আপডেট একই key দিয়ে সাইন হয়।
 
-## ফাইলগুলো কী করে
+## ফাইল
 
 | ফাইল | কাজ |
 |---|---|
-| `VideoListActivity` | হোম স্ক্রিন: Today's Pick, সব রো, সার্চ, "See all" গ্রিড (অসীম স্ক্রল), অটো রিফ্রেশ |
-| `MovieDetailActivity` | মুভির পেজ: এক ট্যাপে Watch, কোয়ালিটি বাছাই, Download, My List |
-| `PlayerActivity` | Media3 ExoPlayer: MP4 + HLS, ফুলস্ক্রিন, ±১০ সেকেন্ড, অটো রিজিউম, শেষ হলে নিজে বন্ধ হয় |
-| `MovieApi` | Internet Archive থেকে লিস্ট, ডিটেইল আর স্ট্রিম লিংক আনে (কোনো key লাগে না) |
-| `MovieAdapter` | পোস্টার কার্ড (রো আর গ্রিড দুটোতেই) |
-| `ImageLoader` | পোস্টার ডাউনলোড, ছোট করা আর মেমরিতে ক্যাশ করা (বাড়তি লাইব্রেরি ছাড়া) |
-| `Store` | My List, Continue Watching আর অফলাইন ক্যাশ (SharedPreferences) |
-| `VideoDownloader` | DownloadManager দিয়ে MP4 ডাউনলোড |
-| `ApiConfig` | ঐচ্ছিক: নিজের সার্ভারের ঠিকানা আর টোকেন |
+| `MainActivity` | নিচের ট্যাব, সব ফিড, Profile |
+| `BrowseActivity` | See All গ্রিড (অসীম স্ক্রল) আর সার্চ |
+| `DetailActivity` | মুভি/সিরিজের পেজ |
+| `PlayerActivity` | Media3 ExoPlayer, অটো রিজিউম |
+| `Catalog` | কোন ট্যাবে কোন রো থাকবে |
+| `Tmdb`, `MovieApi` | TMDB আর Internet Archive ক্লায়েন্ট |
+| `PosterAdapter`, `Ui`, `ImageLoader` | কার্ড, রং, ছবি লোড |
+| `Store` | My List, Continue Watching, ক্যাশ |
+| `ic_*.xml` | আইকন (বিল্ডের সময় `res/drawable`-এ যায়) |
 
-### নতুন ক্যাটাগরি যোগ করা
-`MovieApi.homeSections()`-এ একটা লাইন যোগ করো, যেমন:
-```java
-s.add(new Section("🎵 Musical", FEATURE + " AND subject:(musical)", SORT_POPULAR));
-```
-
-**নোট:** এই অ্যাপে শুধু পাবলিক-ডোমেইন ও ফ্রি-লাইসেন্সের মুভি থাকে, যা দেখা ও ডাউনলোড করা সম্পূর্ণ লিগ্যাল। কপিরাইট করা নতুন মুভি এখানে আসবে না।
+This product uses the TMDB API but is not endorsed or certified by TMDB.

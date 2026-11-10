@@ -32,9 +32,7 @@ public class PlayerActivity extends AppCompatActivity {
     public static final String EXTRA_URL = "video_url";
     public static final String EXTRA_TYPE = "video_type";   // "mp4" or "hls"
     public static final String EXTRA_TITLE = "video_title";
-    public static final String EXTRA_MOVIE_ID = "movie_id";
-    public static final String EXTRA_MOVIE_TITLE = "movie_title";
-    public static final String EXTRA_MOVIE_YEAR = "movie_year";
+    public static final String EXTRA_ITEM = "item";
 
     private static final String KEY_POS = "pos", KEY_PLAY = "play";
 
@@ -43,7 +41,7 @@ public class PlayerActivity extends AppCompatActivity {
     private String url, type;
     private long position = 0L;
     private boolean playWhenReady = true;
-    private MovieApi.Movie movie;
+    private Item movie;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,11 +55,8 @@ public class PlayerActivity extends AppCompatActivity {
         tvTitle.setText(getIntent().getStringExtra(EXTRA_TITLE));
         if (url == null) { finish(); return; }
 
-        String movieId = getIntent().getStringExtra(EXTRA_MOVIE_ID);
-        if (movieId != null) {
-            movie = new MovieApi.Movie(movieId, getIntent().getStringExtra(EXTRA_MOVIE_TITLE),
-                    getIntent().getStringExtra(EXTRA_MOVIE_YEAR));
-        }
+        String itemJson = getIntent().getStringExtra(EXTRA_ITEM);
+        if (itemJson != null) movie = Item.fromJson(itemJson);
 
         if (savedInstanceState != null) {
             position = savedInstanceState.getLong(KEY_POS, 0L);

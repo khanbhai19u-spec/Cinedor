@@ -1,37 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Cinedor</string>
-    <string name="refresh">Refresh</string>
+    <string name="app_name">CineDor</string>
     <string name="back">Back</string>
-    <string name="search_hint">🔍  Search movies…</string>
-    <string name="todays_pick">✨ TODAY\'S PICK</string>
-    <string name="see_all">See all ›</string>
-    <string name="continue_watching">▶️ Continue Watching</string>
-    <string name="my_list">❤️ My List</string>
-    <string name="no_internet">Can\'t load movies. Check your internet connection and tap ⟳.</string>
-    <string name="nothing_found">No movies found.</string>
-
-    <string name="watch">▶  Watch</string>
-    <string name="download">⬇  Download</string>
-    <string name="retry">↻  Retry</string>
-    <string name="add_to_list">♡  Add to My List</string>
-    <string name="in_my_list">❤  In My List</string>
-    <string name="added_to_list">Added to My List</string>
-    <string name="removed_from_list">Removed from My List</string>
-    <string name="watch_hint">Watch plays the best quality automatically • long-press to pick a quality</string>
     <string name="poster">Poster</string>
-    <string name="select_watch">Select quality to watch</string>
-    <string name="select_download">Select quality to download</string>
-    <string name="no_stream">No playable video file for this title</string>
-    <string name="no_stream_short">No video file</string>
-    <string name="public_domain_note">Free public-domain film from the Internet Archive.</string>
-    <string name="load_error">Couldn\'t load movie: %1$s</string>
-    <string name="download_started">Download started (%1$s)</string>
-    <string name="storage_needed">Storage permission needed to download</string>
+    <string name="play">Play</string>
+    <string name="search_hint">Search movies, series, anime…</string>
     <string name="resuming">Resuming where you left off</string>
-
-    <plurals name="qualities">
-        <item quantity="one">%d quality</item>
-        <item quantity="other">%d qualities</item>
-    </plurals>
+    <string name="my_list">My List</string>
+    <string name="download">Download</string>
+    <string name="share">Share</string>
+    <string name="trailer">Trailer</string>
+    <string name="cast">Cast</string>
+    <string name="more_like_this">More Like This</string>
+    <string name="show_more">Show more</string>
 </resources>

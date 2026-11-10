@@ -1,4 +1,4 @@
-name: Build Cinedor Player (Java)
+name: Build CineDor (Java)
 
 on:
   workflow_dispatch:
@@ -6,11 +6,16 @@ on:
       version:
         description: "Version (যেমন 1.0.0) — প্রতিবার বাড়াবে"
         required: true
-        default: "2.0.0"
+        default: "3.0.0"
       notes:
         description: "কী নতুন"
         required: false
-        default: "Auto movie app — everything loads automatically"
+        default: "CineDor — modern auto movie app"
+
+      tmdb_key:
+        description: "TMDB API key (ঐচ্ছিক — TMDB_API_KEY secret থাকলে খালি রাখো)"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -23,11 +28,13 @@ jobs:
       KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
       IN_VERSION: ${{ inputs.version }}
       IN_NOTES: ${{ inputs.notes }}
+      TMDB_API_KEY: ${{ inputs.tmdb_key || secrets.TMDB_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Version
         run: |
+          if [ -n "$TMDB_API_KEY" ]; then echo "::add-mask::$TMDB_API_KEY"; fi
           VER="${IN_VERSION#v}"
           if ! [[ "$VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "::error::Version must look like 1.0.0"; exit 1; fi
           IFS=. read -r MA MI PA <<< "$VER"
@@ -58,9 +65,17 @@ jobs:
           for j in javas: shutil.copy(j, jdir)
           for x in [f for f in files if f.endswith('.xml')]:
               if x.startswith('AndroidManifest'): continue
-              if x == 'strings.xml': shutil.copy(x, f'{src}/res/values/')
-              elif x == 'network_security_config.xml': shutil.copy(x, f'{src}/res/xml/')
-              else: shutil.copy(x, f'{src}/res/layout/')
+              head = open(x, encoding='utf-8').read(700)
+              if x == 'network_security_config.xml': dest = 'xml'
+              elif '<resources' in head: dest = 'values'
+              elif re.search(r'<(vector|shape|selector|ripple|layer-list)\b', head): dest = 'drawable'
+              else: dest = 'layout'
+              os.makedirs(f'{src}/res/{dest}', exist_ok=True)
+              shutil.copy(x, f'{src}/res/{dest}/')
+          key = os.environ.get('TMDB_API_KEY', '').strip()
+          if not re.fullmatch(r'[A-Za-z0-9]*', key): print('::error::TMDB key has invalid characters'); sys.exit(1)
+          if not key: print('::warning::TMDB_API_KEY নেই — অ্যাপে মুভির লিস্ট আসবে না')
+          open(f'{jdir}/Keys.java', 'w').write('package %s;\n\nfinal class Keys {\n    static final String TMDB = "%s";\n    private Keys() {}\n}\n' % (pkg, key))
           icons = ''
           if os.path.exists('ic_launcher.png'):
               shutil.copy('ic_launcher.png', f'{src}/res/mipmap-xxxhdpi/')
@@ -91,7 +106,7 @@ jobs:
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
             <uses-permission android:name="android.permission.INTERNET"/>
             <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28"/>
-            <application android:label="Cinedor Player" {icons} {nsc} android:theme="@style/Theme.Material3.Dark.NoActionBar">
+            <application android:label="CineDor" {icons} {nsc} android:theme="@style/Theme.Material3.Dark.NoActionBar">
           {chr(10).join(acts)}
             </application>
           </manifest>
@@ -152,15 +167,15 @@ jobs:
         run: gradle -p _build :app:assembleRelease -PvName="$VER" -PvCode="$CODE" --no-daemon --stacktrace
 
       - name: Rename
-        run: cp _build/app/build/outputs/apk/release/app-release.apk "CinedorPlayer-v$VER.apk"
+        run: cp _build/app/build/outputs/apk/release/app-release.apk "CineDor-v$VER.apk"
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: player-v${{ env.VER }}
-          name: Cinedor Player v${{ env.VER }}
+          name: CineDor v${{ env.VER }}
           body: ${{ env.IN_NOTES }}
-          files: CinedorPlayer-v${{ env.VER }}.apk
+          files: CineDor-v${{ env.VER }}.apk
           make_latest: false
 
       - name: Clean
