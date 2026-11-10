@@ -7,7 +7,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
-/** Server address + optional token, and a tiny HTTP GET helper. */
+/**
+ * Optional: your own personal server (not needed for the automatic movie catalog, see MovieApi).
+ * The token is only sent to BASE_URL.
+ */
 public final class ApiConfig {
 
     /** Your personal server. Updated with your Termux server IP and port */

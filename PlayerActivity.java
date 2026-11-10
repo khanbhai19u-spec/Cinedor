@@ -25,13 +25,16 @@ import androidx.media3.ui.PlayerView;
 import java.util.HashMap;
 import java.util.Map;
 
-/** Full-screen Media3 ExoPlayer for MP4 and HLS (.m3u8) from your personal server. */
+/** Full-screen Media3 ExoPlayer for MP4 and HLS (.m3u8). Remembers & resumes the position automatically. */
 @OptIn(markerClass = UnstableApi.class)
 public class PlayerActivity extends AppCompatActivity {
 
     public static final String EXTRA_URL = "video_url";
     public static final String EXTRA_TYPE = "video_type";   // "mp4" or "hls"
     public static final String EXTRA_TITLE = "video_title";
+    public static final String EXTRA_MOVIE_ID = "movie_id";
+    public static final String EXTRA_MOVIE_TITLE = "movie_title";
+    public static final String EXTRA_MOVIE_YEAR = "movie_year";
 
     private static final String KEY_POS = "pos", KEY_PLAY = "play";
 
@@ -40,6 +43,7 @@ public class PlayerActivity extends AppCompatActivity {
     private String url, type;
     private long position = 0L;
     private boolean playWhenReady = true;
+    private MovieApi.Movie movie;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,9 +57,19 @@ public class PlayerActivity extends AppCompatActivity {
         tvTitle.setText(getIntent().getStringExtra(EXTRA_TITLE));
         if (url == null) { finish(); return; }
 
+        String movieId = getIntent().getStringExtra(EXTRA_MOVIE_ID);
+        if (movieId != null) {
+            movie = new MovieApi.Movie(movieId, getIntent().getStringExtra(EXTRA_MOVIE_TITLE),
+                    getIntent().getStringExtra(EXTRA_MOVIE_YEAR));
+        }
+
         if (savedInstanceState != null) {
             position = savedInstanceState.getLong(KEY_POS, 0L);
             playWhenReady = savedInstanceState.getBoolean(KEY_PLAY, true);
+        } else {
+            // Auto-resume from where you stopped last time
+            position = Store.resumePosition(this, url);
+            if (position > 0) Toast.makeText(this, R.string.resuming, Toast.LENGTH_SHORT).show();
         }
         // Title bar shows/hides together with the player controls
         playerView.setControllerVisibilityListener((PlayerView.ControllerVisibilityListener) v -> tvTitle.setVisibility(v));
@@ -93,6 +107,15 @@ public class PlayerActivity extends AppCompatActivity {
             public void onPlayerError(@NonNull PlaybackException error) {
                 Toast.makeText(PlayerActivity.this, "Playback error: " + error.getErrorCodeName(), Toast.LENGTH_LONG).show();
             }
+
+            @Override
+            public void onPlaybackStateChanged(int state) {
+                // Movie finished → remove from Continue Watching and close automatically
+                if (state == Player.STATE_ENDED && player != null) {
+                    Store.saveProgress(PlayerActivity.this, movie, url, player.getDuration(), player.getDuration());
+                    finish();
+                }
+            }
         });
         player.seekTo(position);
         player.setPlayWhenReady(playWhenReady);
@@ -103,6 +126,7 @@ public class PlayerActivity extends AppCompatActivity {
         if (player == null) return;
         position = player.getCurrentPosition();
         playWhenReady = player.getPlayWhenReady();
+        Store.saveProgress(this, movie, url, position, player.getDuration());   // for "Continue Watching"
         playerView.setPlayer(null);
         player.release();
         player = null;

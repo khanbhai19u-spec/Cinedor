@@ -12,7 +12,7 @@
 
         <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="220dp"
+            android:layout_height="260dp"
             android:background="#181A1F">
 
             <ImageView
@@ -51,6 +51,17 @@
                 android:textColor="#9CA0AA"
                 android:textSize="13sp" />
 
+            <TextView
+                android:id="@+id/tvGenres"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:textColor="#E879F9"
+                android:textSize="12sp"
+                android:visibility="gone" />
+
             <Button
                 android:id="@+id/btnWatch"
                 android:layout_width="match_parent"
@@ -70,6 +81,25 @@
                 android:text="@string/download"
                 android:textColor="#FFFFFF"
                 android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/btnFav"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="10dp"
+                android:backgroundTint="#262930"
+                android:text="@string/add_to_list"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:text="@string/watch_hint"
+                android:textColor="#80848F"
+                android:textSize="12sp" />
 
             <TextView
                 android:id="@+id/tvDesc"

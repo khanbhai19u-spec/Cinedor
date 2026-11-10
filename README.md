@@ -1,65 +1,55 @@
-# Cinedor — পারসোনাল ভিডিও সার্ভার + Android প্লেয়ার
+# Cinedor — অটো মুভি অ্যাপ (Android)
 
-এটা শুধু **তোমার নিজের ভিডিও** চালানোর জন্য। সার্ভার কেবল `media` ফোল্ডারের ফাইল দেয়, বাইরের কোনো সাইট থেকে কিছু আনে না।
-সাপোর্ট করে: **MP4** (360p / 720p / 1080p) আর **HLS (.m3u8)**, ExoPlayer দিয়ে ফুলস্ক্রিন প্লে, আর DownloadManager দিয়ে ডাউনলোড।
-
----
-
-## ১. সার্ভার চালানো (Termux বা PC)
-
-```bash
-pkg install nodejs -y          # Termux-এ (PC-তে nodejs.org থেকে Node 18+)
-cd backend
-npm install
-PUBLIC_BASE_URL=http://192.168.1.100:3000 npm start
-```
-- `192.168.1.100` জায়গায় সার্ভার যে ফোন/PC-তে চলছে তার Wi-Fi IP দাও (Termux: `ifconfig` → `wlan0` → `inet`)।
-- লক করতে চাইলে: `APP_TOKEN=myPass123 PUBLIC_BASE_URL=... npm start` — তাহলে অ্যাপেও একই টোকেন দিতে হবে।
-- চেক: ব্রাউজারে `http://192.168.1.100:3000/api/videos`
-
-### ভিডিও রাখার নিয়ম
-```
-backend/media/
-  My Trip 2026/
-    info.json      {"title":"My Trip","year":"2026","description":"..."}   (ঐচ্ছিক)
-    poster.jpg                                                          (ঐচ্ছিক)
-    360p.mp4
-    720p.mp4
-    1080p.mp4
-    hls/master.m3u8  (+ .ts ফাইলগুলো)                                     (ঐচ্ছিক)
-```
-ফাইলের নামে `360p` / `720p` / `1080p` থাকলেই কোয়ালিটি নিজে চিনে নেবে। নতুন ফোল্ডার দিলে ৩০ সেকেন্ডের মধ্যে অ্যাপে চলে আসে।
-
-### নিজের ভিডিও থেকে কোয়ালিটি আর HLS বানানো (ffmpeg)
-```bash
-pkg install ffmpeg -y
-# 720p আর 360p কপি
-ffmpeg -i myvideo.mp4 -vf scale=-2:720 -c:v libx264 -crf 23 -preset veryfast -c:a aac -movflags +faststart 720p.mp4
-ffmpeg -i myvideo.mp4 -vf scale=-2:360 -c:v libx264 -crf 26 -preset veryfast -c:a aac -movflags +faststart 360p.mp4
-# HLS (.m3u8) — স্ট্রিমিং দ্রুত শুরু হয়
-mkdir hls && ffmpeg -i 720p.mp4 -c copy -hls_time 6 -hls_playlist_type vod -hls_segment_filename "hls/seg_%03d.ts" hls/master.m3u8
-```
-`-movflags +faststart` দিলে MP4 ডাউনলোড শেষ হওয়ার আগেই প্লে শুরু হয়।
+অ্যাপ খুললেই সব নিজে থেকে চলে আসে। কোনো সার্ভার, API key বা সেটআপ লাগে না।
+মুভিগুলো আসে **Internet Archive**-এর ফ্রি ও লিগ্যাল **পাবলিক-ডোমেইন** কালেকশন থেকে (`feature_films`, `animationandcartoons`)।
 
 ---
 
-## ২. Android অ্যাপে যোগ করা
+## যা যা অটো হয়
 
-1. `android/java/com/cinedor/app/` এর ৫টা `.java` ফাইল তোমার প্রজেক্টের `app/src/main/java/com/cinedor/app/` এ রাখো
-   (তোমার package নাম আলাদা হলে প্রতিটা ফাইলের প্রথম লাইন বদলাও)।
-2. `android/res/` এর `layout/`, `values/strings.xml`, `xml/network_security_config.xml` → `app/src/main/res/` এ।
-3. `build.gradle-dependencies.txt` দেখে dependencies যোগ করো।
-4. `AndroidManifest-additions.xml` দেখে permission, activity আর `networkSecurityConfig` যোগ করো।
-5. `ApiConfig.java` তে `BASE_URL` (সার্ভারের IP) আর দরকার হলে `APP_TOKEN` বসাও।
+| ফিচার | কী হয় |
+|---|---|
+| ✨ **Today's Pick** | প্রতিবার অ্যাপ খুললে জনপ্রিয় মুভি থেকে একটা র‍্যান্ডম মুভি ব্যানারে দেখায় |
+| 🔥 **হোম রো** | Most Popular, Top Rated, Recently Added, Horror, Sci-Fi, Comedy, Film Noir, Action, Western, Drama, Romance, Animation: সব নিজে লোড হয় |
+| ⚡ **অফলাইন ক্যাশ** | শেষবার লোড হওয়া লিস্ট সেভ থাকে, তাই অ্যাপ সাথে সাথে খোলে। প্রতি ১ ঘণ্টায় লিস্ট নিজে রিফ্রেশ হয় |
+| 🖼 **পোস্টার ও তথ্য** | পোস্টার, সাল, দৈর্ঘ্য, জনরা আর বিবরণ নিজে আসে |
+| ▶️ **এক ট্যাপে প্লে** | Watch চাপলে সবচেয়ে ভালো কোয়ালিটি (১০৮০p পর্যন্ত) নিজে বেছে চালায়। লং-প্রেস করলে কোয়ালিটি বাছাই করা যায় |
+| ⏯ **অটো রিজিউম** | মাঝপথে বন্ধ করলে পরেরবার ঠিক সেখান থেকে চলে |
+| ▶️ **Continue Watching** | যেগুলো শেষ হয়নি সেগুলো হোমের উপরে থাকে। শেষ হলে নিজে সরে যায় |
+| ❤️ **My List** | পছন্দের মুভি সেভ করে রাখা যায় |
+| 🔍 **সার্চ + See all** | নাম বা জনরা দিয়ে খোঁজা যায়। নিচে স্ক্রল করলে আরও মুভি নিজে লোড হয় |
+| ⬇ **ডাউনলোড** | DownloadManager দিয়ে `Movies/Cinedor/` ফোল্ডারে নামে, নোটিফিকেশনসহ |
 
-### কোন ফাইল কী করে
+---
+
+## APK বানানো (GitHub Actions)
+
+1. GitHub-এ রিপোজিটরির **Actions** ট্যাবে যাও, তারপর **Build Cinedor Player (Java)** খোলো, তারপর **Run workflow** চাপো
+2. Version দাও (যেমন `2.0.0`, প্রতিবার আগেরটার চেয়ে বাড়াতে হবে)
+3. বিল্ড শেষ হলে **Releases**-এ `CinedorPlayer-v2.0.0.apk` পাওয়া যাবে। সেটা ফোনে ইনস্টল করো
+
+ঐচ্ছিক: `KEYSTORE_BASE64` আর `KEYSTORE_PASSWORD` secret দিলে প্রতিটা আপডেট একই key দিয়ে সাইন হবে, তাই আগের অ্যাপের উপর সরাসরি আপডেট ইনস্টল করা যাবে।
+
+---
+
+## ফাইলগুলো কী করে
+
 | ফাইল | কাজ |
 |---|---|
-| `VideoListActivity` | সার্ভারের সব ভিডিওর লিস্ট |
-| `MovieDetailActivity` | টাইটেল, পোস্টার, বিবরণ; **Watch / Download** চাপলে কোয়ালিটি BottomSheet |
-| `PlayerActivity` | Media3 ExoPlayer — MP4 + HLS, ফুলস্ক্রিন ল্যান্ডস্কেপ, ±১০ সেকেন্ড, ঘোরালে/ফিরে এলে আগের জায়গা থেকে চলে |
-| `VideoDownloader` | DownloadManager → `Movies/Cinedor/` ফোল্ডারে, নোটিফিকেশন সহ (শুধু তোমার সার্ভারের MP4) |
-| `ApiConfig` | সার্ভারের ঠিকানা, টোকেন, HTTP helper |
+| `VideoListActivity` | হোম স্ক্রিন: Today's Pick, সব রো, সার্চ, "See all" গ্রিড (অসীম স্ক্রল), অটো রিফ্রেশ |
+| `MovieDetailActivity` | মুভির পেজ: এক ট্যাপে Watch, কোয়ালিটি বাছাই, Download, My List |
+| `PlayerActivity` | Media3 ExoPlayer: MP4 + HLS, ফুলস্ক্রিন, ±১০ সেকেন্ড, অটো রিজিউম, শেষ হলে নিজে বন্ধ হয় |
+| `MovieApi` | Internet Archive থেকে লিস্ট, ডিটেইল আর স্ট্রিম লিংক আনে (কোনো key লাগে না) |
+| `MovieAdapter` | পোস্টার কার্ড (রো আর গ্রিড দুটোতেই) |
+| `ImageLoader` | পোস্টার ডাউনলোড, ছোট করা আর মেমরিতে ক্যাশ করা (বাড়তি লাইব্রেরি ছাড়া) |
+| `Store` | My List, Continue Watching আর অফলাইন ক্যাশ (SharedPreferences) |
+| `VideoDownloader` | DownloadManager দিয়ে MP4 ডাউনলোড |
+| `ApiConfig` | ঐচ্ছিক: নিজের সার্ভারের ঠিকানা আর টোকেন |
 
-**নোট:** HLS (.m3u8) শুধু স্ট্রিম হয়, DownloadManager দিয়ে নামানো যায় না — ডাউনলোডের জন্য MP4 কোয়ালিটি রাখো।
-অনলাইনে (বাসার বাইরে থেকে) চালাতে চাইলে সার্ভারে HTTPS দাও (যেমন Cloudflare Tunnel) আর `APP_TOKEN` অবশ্যই চালু রাখো।
+### নতুন ক্যাটাগরি যোগ করা
+`MovieApi.homeSections()`-এ একটা লাইন যোগ করো, যেমন:
+```java
+s.add(new Section("🎵 Musical", FEATURE + " AND subject:(musical)", SORT_POPULAR));
+```
+
+**নোট:** এই অ্যাপে শুধু পাবলিক-ডোমেইন ও ফ্রি-লাইসেন্সের মুভি থাকে, যা দেখা ও ডাউনলোড করা সম্পূর্ণ লিগ্যাল। কপিরাইট করা নতুন মুভি এখানে আসবে না।
