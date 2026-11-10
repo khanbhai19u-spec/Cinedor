@@ -1,0 +1,83 @@
+name: Build MAYRA (AI Assistant)
+
+on:
+  push:
+    paths:
+      - "mayra/**"
+      - ".github/workflows/mayra.yml"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (যেমন 1.0.0) — প্রতিবার বাড়াবে"
+        required: true
+        default: "1.0.0"
+      notes:
+        description: "কী নতুন"
+        required: false
+        default: "MAYRA update"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      IN_VERSION: ${{ inputs.version }}
+      IN_NOTES: ${{ inputs.notes }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version
+        run: |
+          VER="${IN_VERSION#v}"
+          if [ -z "$VER" ]; then VER="0.0.${GITHUB_RUN_NUMBER}"; fi
+          if ! [[ "$VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "::error::Version must look like 1.0.0"; exit 1; fi
+          IFS=. read -r MA MI PA <<< "$VER"
+          echo "VER=$VER" >> "$GITHUB_ENV"
+          echo "CODE=$(( 10#$MA * 10000 + 10#$MI * 100 + 10#$PA ))" >> "$GITHUB_ENV"
+
+      - name: Keystore
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > mayra/app/release.jks
+          else
+            echo "::warning::KEYSTORE_BASE64 secret নেই — debug key দিয়ে সাইন হবে (পরের আপডেট ইনস্টলে সমস্যা হতে পারে)"
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Build APK
+        run: gradle -p mayra :app:assembleRelease -PvName="$VER" -PvCode="$CODE" --no-daemon --stacktrace
+
+      - name: Rename
+        run: cp mayra/app/build/outputs/apk/release/app-release.apk "MAYRA-v$VER.apk"
+
+      - name: Upload APK (every build)
+        uses: actions/upload-artifact@v4
+        with:
+          name: MAYRA-v${{ env.VER }}
+          path: MAYRA-v${{ env.VER }}.apk
+
+      - name: Publish release
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: mayra-v${{ env.VER }}
+          name: MAYRA v${{ env.VER }}
+          body: ${{ env.IN_NOTES }}
+          files: MAYRA-v${{ env.VER }}.apk
+          make_latest: true
+
+      - name: Clean
+        if: always()
+        run: rm -f mayra/app/release.jks || true
