@@ -24,6 +24,12 @@ public final class Ui {
         return Math.round(v * c.getResources().getDisplayMetrics().density);
     }
 
+    /** Status bar height (fallback when window insets arrive late). */
+    public static int statusBarHeight(Context c) {
+        int id = c.getResources().getIdentifier("status_bar_height", "dimen", "android");
+        return id > 0 ? c.getResources().getDimensionPixelSize(id) : dp(c, 24);
+    }
+
     public static int screenWidth(Context c) {
         DisplayMetrics m = c.getResources().getDisplayMetrics();
         return m.widthPixels;

@@ -94,16 +94,20 @@ public final class Tmdb {
     }
 
     /** Key typed in App Settings wins; otherwise the one built in from the GitHub secret. */
-    public static String key() {
-        String own = prefs != null ? prefs.getString("key", "") : "";
-        return own.isEmpty() ? BuildConfig.TMDB_API_KEY : own;
-    }
+    public static String key() { return BuildConfig.TMDB_API_KEY; }
 
     public static boolean hasBuiltInKey() { return !BuildConfig.TMDB_API_KEY.isEmpty(); }
     public static boolean enabled() { return !key().isEmpty(); }
     public static String ownKey() { return prefs != null ? prefs.getString("key", "") : ""; }
 
-    public static String language() { return prefs != null ? prefs.getString("lang", "en-US") : "en-US"; }
+    /** TMDB text in the phone's language (falls back to English where TMDB has none). */
+    public static String language() {
+        Locale l = Locale.getDefault();
+        String lang = l.getLanguage();
+        if (lang.isEmpty()) return "en-US";
+        String country = l.getCountry();
+        return country.isEmpty() ? lang : lang + "-" + country;
+    }
 
     public static void save(String key, String lang) {
         if (prefs == null) return;
@@ -120,7 +124,7 @@ public final class Tmdb {
     // ---------- http ----------
     private static JSONObject get(String path, String params) throws Exception {
         String k = key();
-        if (k.isEmpty()) throw new Exception("TMDB key missing — add it in Settings › App Settings");
+        if (k.isEmpty()) throw new Exception("TMDB key missing — add the TMDB_API_KEY secret on GitHub and build again");
         StringBuilder u = new StringBuilder(API).append(path).append(path.contains("?") ? "&" : "?")
                 .append("language=").append(language());
         if (params != null && !params.isEmpty()) u.append('&').append(params);

@@ -149,7 +149,7 @@ public class HomeFragment extends Fragment implements MainActivity.Tab {
                 bindTmdb(list);
                 if (heroAdapter.getItemCount() == 0) {
                     message.setText(!Tmdb.enabled()
-                            ? "TMDB key is missing.\n\nAdd it as the GitHub secret TMDB_API_KEY and build again, or paste it in Settings › App Settings."
+                            ? "TMDB key is missing.\n\nAdd it as the GitHub secret TMDB_API_KEY and build again."
                             : "Couldn't load from TMDB: " + error + "\n\nPull down to try again.");
                     message.setVisibility(View.VISIBLE);
                 }
@@ -175,16 +175,6 @@ public class HomeFragment extends Fragment implements MainActivity.Tab {
         for (int i = 0; i < list.size(); i++) {
             Tmdb.Row r = list.get(i);
             addRow(tmdbRows, r.title, r.items, Tmdb.HOME_ROWS.length > i ? categoryFor(r.title) : null);
-        }
-        if (!list.isEmpty()) {
-            TextView note = new TextView(requireContext());
-            note.setText("Movie & TV info and images from TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB.");
-            note.setTextColor(0xFF868A96);
-            note.setTextSize(12);
-            note.setGravity(android.view.Gravity.CENTER);
-            int p = Ui.dp(requireContext(), 28);
-            note.setPadding(p, p, p, 0);
-            tmdbRows.addView(note);
         }
         // Big carousel: your own featured titles if you have a server, else TMDB trending
         if (Catalog.items().isEmpty() && !list.isEmpty()) {

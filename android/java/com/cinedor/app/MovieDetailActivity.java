@@ -75,7 +75,7 @@ public class MovieDetailActivity extends AppCompatActivity {
         ViewCompat.setOnApplyWindowInsetsListener(top, (v, insets) -> {
             Insets b = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             int p = Ui.dp(this, 16);
-            v.setPadding(p + b.left, p + b.top, p + b.right, p);
+            v.setPadding(p + b.left, p + Math.max(b.top, Ui.statusBarHeight(this)), p + b.right, p);
             return insets;
         });
 

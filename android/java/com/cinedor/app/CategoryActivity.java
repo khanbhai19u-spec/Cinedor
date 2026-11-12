@@ -55,10 +55,11 @@ public class CategoryActivity extends AppCompatActivity {
 
         View bar = findViewById(R.id.catBar);
         RecyclerView rv = findViewById(R.id.catList);
+        bar.setPadding(Ui.dp(this, 16), Ui.dp(this, 16) + Ui.statusBarHeight(this), Ui.dp(this, 16), Ui.dp(this, 16));
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.catRoot), (v, insets) -> {
             Insets b = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             int p = Ui.dp(this, 16);
-            bar.setPadding(p + b.left, p + b.top, p + b.right, p);
+            bar.setPadding(p + b.left, p + Math.max(b.top, Ui.statusBarHeight(this)), p + b.right, p);
             rv.setPadding(Ui.dp(this, 12) + b.left, 0, Ui.dp(this, 12) + b.right, Ui.dp(this, 24) + b.bottom);
             return insets;
         });

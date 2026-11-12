@@ -50,13 +50,13 @@ public class LibraryFragment extends Fragment implements MainActivity.Tab {
 
         for (int i = 0; i < NAMES.length; i++) {
             TextView t = new TextView(requireContext());
-            t.setTextSize(17);
+            t.setTextSize(14);
             t.setTypeface(t.getTypeface(), android.graphics.Typeface.BOLD);
             t.setGravity(android.view.Gravity.CENTER);
-            int ph = Ui.dp(requireContext(), 26);
+            int ph = Ui.dp(requireContext(), 18);
             t.setPadding(ph, 0, ph, 0);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Ui.dp(requireContext(), 54));
-            lp.setMarginEnd(Ui.dp(requireContext(), 10));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Ui.dp(requireContext(), 40));
+            lp.setMarginEnd(Ui.dp(requireContext(), 8));
             final int idx = i;
             t.setOnClickListener(x -> { tab = idx; refresh(); });
             tabs.addView(t, lp);
@@ -98,7 +98,7 @@ public class LibraryFragment extends Fragment implements MainActivity.Tab {
             boolean on = i == tab;
             t.setText(NAMES[i] + " (" + counts[i] + ")");
             t.setTextColor(on ? 0xFFFFFFFF : 0xFFDADBE0);
-            t.setBackground(Ui.round(on ? 0xFF5E81F4 : 0xFF1C1D22, Ui.dp(requireContext(), 27)));
+            t.setBackground(Ui.round(on ? 0xFF5E81F4 : 0xFF1C1D22, Ui.dp(requireContext(), 20)));
         }
 
         List<PosterAdapter.Item> items = new ArrayList<>();
