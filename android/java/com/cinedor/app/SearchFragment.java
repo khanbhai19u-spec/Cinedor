@@ -93,9 +93,9 @@ public class SearchFragment extends Fragment implements MainActivity.Tab {
         List<Video> hits = new ArrayList<>();
         for (Video v : Catalog.items()) if (v.matches(q)) hits.add(v);
         List<PosterAdapter.Item> local = PosterAdapter.wrap(hits);
-        for (PosterAdapter.Item it : local) it.subtitle = "Yours • " + it.subtitle;
+        for (PosterAdapter.Item it : local) it.subtitle = "Your video • " + it.subtitle;
         adapter.submit(local);
-        if (hits.isEmpty()) showEmpty(R.drawable.ic_search, getString(R.string.search_none, q), "Searching TMDB…");
+        if (hits.isEmpty()) showEmpty(R.drawable.ic_search, getString(R.string.search_none, q), "Searching…");
         else empty.setVisibility(View.GONE);
 
         // TMDB results (info & trailers) follow your own titles
@@ -106,7 +106,7 @@ public class SearchFragment extends Fragment implements MainActivity.Tab {
             adapter.submit(all);
             if (all.isEmpty()) {
                 showEmpty(R.drawable.ic_search, getString(R.string.search_none, q),
-                        error != null ? error : Catalog.isLoaded() ? "Try another word." : "Server not reachable — check Settings.");
+                        error != null ? error : "Try another word.");
             } else {
                 empty.setVisibility(View.GONE);
             }

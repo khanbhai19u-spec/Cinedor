@@ -1,10 +1,17 @@
 package com.cinedor.app;
 
+import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -13,12 +20,10 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
-/** Server address / token and library housekeeping. */
+/** Profile header + menu (My List, Downloads, categories, Telegram, App Settings, About). */
 public class SettingsFragment extends Fragment implements MainActivity.Tab {
 
-    private EditText server, token;
-    private TextView status, tmdbStatus;
-    private EditText tmdbKey;
+    private TextView name, count;
 
     @Nullable
     @Override
@@ -28,83 +33,97 @@ public class SettingsFragment extends Fragment implements MainActivity.Tab {
 
     @Override
     public void onViewCreated(@NonNull View v, @Nullable Bundle state) {
-        server = v.findViewById(R.id.inputServer);
-        token = v.findViewById(R.id.inputToken);
-        status = v.findViewById(R.id.serverStatus);
-        server.setText(ApiConfig.baseUrl());
-        token.setText(ApiConfig.token());
+        name = v.findViewById(R.id.profileName);
+        count = v.findViewById(R.id.profileCount);
+        v.findViewById(R.id.avatar).setBackground(Ui.round(0xFFE11D2E, Ui.dp(requireContext(), 18)));
+        v.findViewById(R.id.profileHeader).setOnClickListener(x -> editName());
 
-        v.findViewById(R.id.btnSave).setOnClickListener(b -> {
-            ApiConfig.save(requireContext(), server.getText().toString(), token.getText().toString());
-            server.setText(ApiConfig.baseUrl());
-            status.setText("Connecting to " + ApiConfig.baseUrl() + " …");
-            Catalog.load(true, (items, error) -> {
-                if (getView() == null) return;
-                status.setText(error == null ? "✓ Connected — " + items.size() + " titles" : "✗ " + error);
-                refreshTmdb();
-                if (getActivity() instanceof MainActivity) ((MainActivity) getActivity()).refreshAll();
-            });
-        });
+        LinearLayout top = v.findViewById(R.id.menuTop);
+        add(top, R.drawable.ic_person_outline, "Profile Settings", "", this::editName);
+        add(top, R.drawable.ic_add, "My List", "", () -> openLibrary(0));
+        add(top, R.drawable.ic_download, "Downloads", "", () -> openLibrary(2));
+        add(top, R.drawable.ic_tv, "K-Drama", "Korean series", () -> CategoryActivity.open(requireContext(), Tmdb.K_DRAMA));
+        add(top, R.drawable.ic_tv, "C-Drama", "Chinese series", () -> CategoryActivity.open(requireContext(), Tmdb.C_DRAMA));
+        add(top, R.drawable.ic_film, "Anime", "Japanese", () -> CategoryActivity.open(requireContext(), Tmdb.ANIME));
+        add(top, R.drawable.ic_movie, "Hindi movies", "Bollywood", () -> CategoryActivity.open(requireContext(), Tmdb.BOLLYWOOD));
+        add(top, R.drawable.ic_star, "Top rated", "", () -> CategoryActivity.open(requireContext(), Tmdb.TOP_RATED));
 
-        tmdbKey = v.findViewById(R.id.inputTmdb);
-        tmdbStatus = v.findViewById(R.id.tmdbStatus);
-        v.findViewById(R.id.btnTmdb).setOnClickListener(b -> {
-            String k = tmdbKey.getText().toString().trim();
-            if (k.isEmpty()) { tmdbStatus.setText("Paste your TMDB API key first"); return; }
-            tmdbStatus.setText("Checking the key with TMDB…");
-            Tmdb.config(k, null, (cfg, error) -> {
-                if (getView() == null) return;
-                if (error != null) { tmdbStatus.setText("✗ " + error); return; }
-                tmdbKey.setText("");
-                showTmdb(cfg);
-                if (getActivity() instanceof MainActivity) ((MainActivity) getActivity()).refreshAll();
-            });
-        });
-        refreshTmdb();
+        LinearLayout bottom = v.findViewById(R.id.menuBottom);
+        String telegram = getString(R.string.telegram_url).trim();
+        if (!telegram.isEmpty()) add(bottom, R.drawable.ic_send, "Join the Telegram Channel", "", () -> openUrl(telegram));
+        add(bottom, R.drawable.ic_tune, "App Settings", "", () ->
+                startActivity(new Intent(requireContext(), AppSettingsActivity.class)));
+        add(bottom, R.drawable.ic_info, "About", "", this::about);
+        refresh();
+    }
 
-        v.findViewById(R.id.btnClearHistory).setOnClickListener(b -> confirm("Clear watch history?", () -> {
-            Store.clearHistory(requireContext());
-            Toast.makeText(requireContext(), "History cleared", Toast.LENGTH_SHORT).show();
-        }));
-        v.findViewById(R.id.btnClearFavorites).setOnClickListener(b -> confirm("Clear all favorites?", () -> {
-            Store.clearFavorites(requireContext());
-            Toast.makeText(requireContext(), "Favorites cleared", Toast.LENGTH_SHORT).show();
-        }));
+    @Override public void onShown() { refresh(); }
+    @Override public void onResume() { super.onResume(); refresh(); }
 
+    private void refresh() {
+        if (name == null || !isAdded()) return;
+        name.setText(prefs().getString("name", "Your Cinedor"));
+        int n = Store.favorites(requireContext()).size();
+        count.setText(n + " in My List");
+    }
+
+    private void add(LinearLayout box, int icon, String title, String value, Runnable action) {
+        View row = LayoutInflater.from(requireContext()).inflate(R.layout.item_menu, box, false);
+        ((ImageView) row.findViewById(R.id.menuIcon)).setImageResource(icon);
+        ((TextView) row.findViewById(R.id.menuTitle)).setText(title);
+        TextView val = row.findViewById(R.id.menuValue);
+        val.setText(value);
+        val.setVisibility(value.isEmpty() ? View.GONE : View.VISIBLE);
+        row.setOnClickListener(x -> action.run());
+        box.addView(row);
+    }
+
+    private android.content.SharedPreferences prefs() {
+        return requireContext().getSharedPreferences("profile", Context.MODE_PRIVATE);
+    }
+
+    private void editName() {
+        EditText input = new EditText(requireContext());
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
+        input.setText(prefs().getString("name", "Your Cinedor"));
+        input.setSelectAllOnFocus(true);
+        FrameLayout wrap = new FrameLayout(requireContext());
+        int p = Ui.dp(requireContext(), 22);
+        wrap.setPadding(p, Ui.dp(requireContext(), 8), p, 0);
+        wrap.addView(input);
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Profile name")
+                .setView(wrap)
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Save", (d, w) -> {
+                    String s = input.getText().toString().trim();
+                    prefs().edit().putString("name", s.isEmpty() ? "Your Cinedor" : s).apply();
+                    refresh();
+                })
+                .show();
+    }
+
+    private void openLibrary(int tab) {
+        if (getActivity() instanceof MainActivity) ((MainActivity) getActivity()).openLibrary(tab);
+    }
+
+    private void openUrl(String url) {
+        try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); }
+        catch (Exception e) { Toast.makeText(requireContext(), "Can't open link", Toast.LENGTH_SHORT).show(); }
+    }
+
+    private void about() {
         String version = "";
         try {
             version = requireContext().getPackageManager().getPackageInfo(requireContext().getPackageName(), 0).versionName;
             if (version == null) version = "";
         } catch (Exception ignored) {}
-        ((TextView) v.findViewById(R.id.about)).setText("Cinedor " + version
-                + "\nPlays videos from your own Cinedor server.\n" + getString(R.string.long_press_remove));
-    }
-
-    @Override
-    public void onShown() {
-        if (server != null && !server.hasFocus()) server.setText(ApiConfig.baseUrl());
-        if (tmdbStatus != null) refreshTmdb();
-    }
-
-    private void refreshTmdb() {
-        Tmdb.config(null, null, (cfg, error) -> {
-            if (getView() == null) return;
-            if (error != null) tmdbStatus.setText("Server: " + error);
-            else showTmdb(cfg);
-        });
-    }
-
-    private void showTmdb(org.json.JSONObject cfg) {
-        tmdbStatus.setText(cfg.optBoolean("tmdbEnabled")
-                ? "✓ TMDB is on (key " + cfg.optString("tmdbKeyMasked") + ")"
-                : "TMDB is off — add your key above");
-    }
-
-    private void confirm(String msg, Runnable ok) {
         new AlertDialog.Builder(requireContext())
-                .setMessage(msg)
-                .setNegativeButton("Cancel", null)
-                .setPositiveButton("Clear", (d, w) -> ok.run())
+                .setTitle("Cinedor " + version)
+                .setMessage("Browse movies and series, watch trailers and keep your own list.\n\n"
+                        + "Movie & TV information and images come from TMDB. This product uses the TMDB API "
+                        + "but is not endorsed or certified by TMDB.")
+                .setPositiveButton("OK", null)
                 .show();
     }
 }

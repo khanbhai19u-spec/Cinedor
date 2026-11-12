@@ -24,7 +24,7 @@ import java.util.List;
 /** Favorites / History / Downloads. */
 public class LibraryFragment extends Fragment implements MainActivity.Tab {
 
-    private static final String[] NAMES = {"Favorites", "History", "Downloads"};
+    private static final String[] NAMES = {"My List", "History", "Downloads"};
 
     private int tab = 0;
     private LinearLayout tabs;
@@ -77,6 +77,11 @@ public class LibraryFragment extends Fragment implements MainActivity.Tab {
     public void onSaveInstanceState(@NonNull Bundle out) {
         out.putInt("tab", tab);
         super.onSaveInstanceState(out);
+    }
+
+    public void showTab(int t) {
+        tab = t;
+        refresh();
     }
 
     @Override public void onShown() { if (getView() != null) refresh(); }

@@ -118,6 +118,7 @@ public class HomeFragment extends Fragment implements MainActivity.Tab {
     @Override
     public void onResume() {
         super.onResume();
+        if (heroAdapter.getItemCount() == 0 && getView() != null) reload(false);
         bindContinue();
         heroAdapter.notifyDataSetChanged();
         restartAutoScroll();
@@ -136,64 +137,67 @@ public class HomeFragment extends Fragment implements MainActivity.Tab {
 
     public void reload(boolean force) {
         if (getView() == null) return;
-        if (!Catalog.isLoaded() || force) {
-            if (heroAdapter.getItemCount() == 0) progress.setVisibility(View.VISIBLE);
-        }
+        if (heroAdapter.getItemCount() == 0) progress.setVisibility(View.VISIBLE);
         message.setVisibility(View.GONE);
-        Catalog.load(force, (items, error) -> {
+        Catalog.load(force, (items, serverError) -> {
             if (getView() == null) return;
-            swipe.setRefreshing(false);
-            progress.setVisibility(View.GONE);
             bind(items);
-            loadTmdb(force);
-            if (error != null && items.isEmpty()) {
-                message.setText(getString(R.string.server_error, error) + "\n\nServer: " + ApiConfig.baseUrl()
-                        + "\nChange it in Settings.");
-                message.setVisibility(View.VISIBLE);
-            } else if (items.isEmpty()) {
-                message.setText(R.string.no_videos);
-                message.setVisibility(View.VISIBLE);
-            }
+            Tmdb.discover(force, (list, error) -> {
+                if (getView() == null) return;
+                swipe.setRefreshing(false);
+                progress.setVisibility(View.GONE);
+                bindTmdb(list);
+                if (heroAdapter.getItemCount() == 0) {
+                    message.setText(!Tmdb.enabled()
+                            ? "TMDB key is missing.\n\nAdd it as the GitHub secret TMDB_API_KEY and build again, or paste it in Settings › App Settings."
+                            : "Couldn't load from TMDB: " + error + "\n\nPull down to try again.");
+                    message.setVisibility(View.VISIBLE);
+                }
+            });
         });
     }
 
+    /** Your own server titles (only when a server is set in App Settings). */
     private void bind(List<Video> items) {
         List<Video> hero = new ArrayList<>();
         for (Video v : items) if (v.featured && hero.size() < 10) hero.add(v);
-        if (hero.isEmpty()) for (Video v : items) if (hero.size() < 10) hero.add(v);
-        heroIsTmdb = false;
-        heroAdapter.submit(hero);
-        buildDots(hero.size());
-        if (!hero.isEmpty()) updateDots(Math.min(pager.getCurrentItem(), hero.size() - 1));
+        if (!hero.isEmpty()) {
+            heroAdapter.submit(hero);
+            buildDots(hero.size());
+            updateDots(Math.min(pager.getCurrentItem(), hero.size() - 1));
+        }
         bindContinue();
         buildRows(items);
     }
 
-    private void loadTmdb(boolean force) {
-        Tmdb.discover(force, (list, error) -> {
-            if (getView() == null) return;
-            tmdbRows.removeAllViews();
-            for (Tmdb.Row r : list) addRow(tmdbRows, r.title, r.items, "TMDB");
-            if (!list.isEmpty()) {
-                TextView note = new TextView(requireContext());
-                note.setText("Movie & TV info and images from TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB.");
-                note.setTextColor(0xFF868A96);
-                note.setTextSize(12);
-                note.setGravity(android.view.Gravity.CENTER);
-                int p = Ui.dp(requireContext(), 28);
-                note.setPadding(p, p, p, 0);
-                tmdbRows.addView(note);
-            }
-            // Nothing of your own yet: show trending in the big carousel
-            if (Catalog.items().isEmpty() && !list.isEmpty()) {
-                List<Video> hero = list.get(0).items.subList(0, Math.min(10, list.get(0).items.size()));
-                heroIsTmdb = true;
-                heroAdapter.submit(new ArrayList<>(hero));
-                buildDots(hero.size());
-                updateDots(0);
-                message.setVisibility(View.GONE);
-            }
-        });
+    private void bindTmdb(List<Tmdb.Row> list) {
+        tmdbRows.removeAllViews();
+        for (int i = 0; i < list.size(); i++) {
+            Tmdb.Row r = list.get(i);
+            addRow(tmdbRows, r.title, r.items, Tmdb.HOME_ROWS.length > i ? categoryFor(r.title) : null);
+        }
+        if (!list.isEmpty()) {
+            TextView note = new TextView(requireContext());
+            note.setText("Movie & TV info and images from TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB.");
+            note.setTextColor(0xFF868A96);
+            note.setTextSize(12);
+            note.setGravity(android.view.Gravity.CENTER);
+            int p = Ui.dp(requireContext(), 28);
+            note.setPadding(p, p, p, 0);
+            tmdbRows.addView(note);
+        }
+        // Big carousel: your own featured titles if you have a server, else TMDB trending
+        if (Catalog.items().isEmpty() && !list.isEmpty()) {
+            List<Video> hero = list.get(0).items.subList(0, Math.min(10, list.get(0).items.size()));
+            heroAdapter.submit(new ArrayList<>(hero));
+            buildDots(hero.size());
+            updateDots(0);
+        }
+    }
+
+    private Tmdb.Category categoryFor(String title) {
+        for (Tmdb.Category c : Tmdb.HOME_ROWS) if (c.title.equals(title)) return c;
+        return null;
     }
 
     private void bindContinue() {
@@ -217,29 +221,35 @@ public class HomeFragment extends Fragment implements MainActivity.Tab {
         if (items.isEmpty()) return;
         List<Video> movies = new ArrayList<>(), series = new ArrayList<>();
         for (Video v : items) (v.isSeries() ? series : movies).add(v);
-        addRow(rows, "Recently added", items.subList(0, Math.min(20, items.size())), "YOUR LIBRARY");
+        addRow(rows, "Your videos", items.subList(0, Math.min(20, items.size())), null);
         if (!movies.isEmpty() && !series.isEmpty()) {
             addRow(rows, "Your movies", movies, null);
             addRow(rows, "Your series", series, null);
         }
     }
 
-    private void addRow(LinearLayout parent, String title, List<Video> list, String tag) {
+    private void addRow(LinearLayout parent, String title, List<Video> list, Tmdb.Category more) {
+        LinearLayout head = new LinearLayout(requireContext());
+        head.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        int pad = Ui.dp(requireContext(), 24);
+        head.setPadding(pad, Ui.dp(requireContext(), 26), Ui.dp(requireContext(), 16), Ui.dp(requireContext(), 4));
         TextView tv = new TextView(requireContext());
-        android.text.SpannableStringBuilder sb = new android.text.SpannableStringBuilder(title);
-        if (tag != null) {
-            int start = sb.length();
-            sb.append("   ").append(tag);
-            sb.setSpan(new android.text.style.RelativeSizeSpan(0.6f), start, sb.length(), 0);
-            sb.setSpan(new android.text.style.ForegroundColorSpan(0xFF868A96), start, sb.length(), 0);
-        }
-        tv.setText(sb);
+        tv.setText(title);
         tv.setTextColor(0xFFF4F4F6);
         tv.setTextSize(19);
         tv.setTypeface(tv.getTypeface(), android.graphics.Typeface.BOLD);
-        int pad = Ui.dp(requireContext(), 24);
-        tv.setPadding(pad, Ui.dp(requireContext(), 28), pad, Ui.dp(requireContext(), 6));
-        parent.addView(tv);
+        head.addView(tv, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        if (more != null) {
+            TextView all = new TextView(requireContext());
+            all.setText("See all");
+            all.setTextColor(0xFF5E81F4);
+            all.setTextSize(14);
+            int p8 = Ui.dp(requireContext(), 8);
+            all.setPadding(p8, p8, p8, p8);
+            all.setOnClickListener(x -> CategoryActivity.open(requireContext(), more));
+            head.addView(all);
+        }
+        parent.addView(head);
 
         RecyclerView rv = new RecyclerView(requireContext());
         rv.setLayoutManager(new LinearLayoutManager(requireContext(), RecyclerView.HORIZONTAL, false));

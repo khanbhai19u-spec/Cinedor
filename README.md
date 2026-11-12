@@ -3,6 +3,25 @@
 তোমার **নিজের ভিডিও** (ফ্যামিলি ভিডিও, নিজের বানানো কনটেন্ট, যেগুলোর রাইট তোমার আছে) সুন্দর একটা স্ট্রিমিং-অ্যাপ স্টাইলে চালানোর জন্য।
 সার্ভার শুধু `backend/media` ফোল্ডারের ফাইল দেয়, বাইরের কোনো সাইট থেকে কিছু আনে না।
 
+## Android অ্যাপ — সব কিছু TMDB থেকে
+অ্যাপ এখন সরাসরি TMDB থেকে সব আনে: Trending, Popular, K-Drama, C-Drama, Anime, Hindi, Top rated, সার্চ, ডিটেইল, কাস্ট, ট্রেইলার।
+কোনো সার্ভার লাগে না। নিজের ভিডিও ফাইল চালাতে চাইলে তবেই **Settings › App Settings › Personal server** এ সার্ভার দাও (ঐচ্ছিক)।
+TMDB শুধু তথ্য আর ছবি দেয়, ভিডিও ফাইল দেয় না — তাই TMDB-র টাইটেলে **Watch trailer** থাকে।
+
+### TMDB key → GitHub Secret (একবারই করতে হবে)
+1. GitHub-এ repo খোলো → **Settings → Secrets and variables → Actions → New repository secret**
+2. Name: `TMDB_API_KEY` , Secret: তোমার TMDB key → **Add secret**
+3. বিল্ডের সময় key অ্যাপে ঢুকে যায়; কোডে বা repo-তে কোথাও লেখা থাকে না।
+   (চাইলে অ্যাপের **App Settings**-এ অন্য key দিয়ে বদলানো যায়।)
+
+### Release (নিজে থেকে)
+- `main` ব্রাঞ্চে push করলেই **Releases**-এ নতুন APK আসে (version `2.1.<run নম্বর>`)।
+- হাতে চাইলে: **Actions → Build Cinedor (Android) → Run workflow** (version খালি রাখলে নিজে বসবে)।
+- আপডেট ঠিকমতো ইনস্টল হতে সব release একই key দিয়ে সাইন হওয়া দরকার — তাই `KEYSTORE_BASE64` আর `KEYSTORE_PASSWORD` secret দুটোও রাখো।
+
+### Telegram লিংক
+`android/res/values/strings.xml` এ `telegram_url` এর ভেতরে লিংক দাও (যেমন `https://t.me/yourchannel`) — তাহলে Settings-এ "Join the Telegram Channel" দেখাবে।
+
 ## দুইভাবে চালানো যায়
 - **ওয়েব অ্যাপ (মোবাইল-রেসপন্সিভ):** সার্ভার চালু করে ফোনের ব্রাউজারে `http://<IP>:3000` খোলো। ছোট ফোন, বড় ফোন, ট্যাবলেট, ল্যাপটপ — সব সাইজে লেআউট নিজে মানিয়ে নেয়। ব্রাউজারের মেনু → **Add to Home screen** দিলে অ্যাপের মতো খোলে।
 - **Android অ্যাপ (APK):** নিচে "APK বানানো" দেখো। স্ক্রিন সাইজ অনুযায়ী কলাম, পোস্টার আর carousel-এর মাপ নিজে বদলায়।

@@ -3,6 +3,8 @@ plugins { id("com.android.application") }
 val vName = (project.findProperty("vName") as String?) ?: "2.0.0"
 val vCode = (project.findProperty("vCode") as String?)?.toIntOrNull() ?: 20000
 val ks = file("release.jks")
+// TMDB key comes from the GitHub secret TMDB_API_KEY (or -PtmdbKey=... locally). Never commit it.
+val tmdbKey = (System.getenv("TMDB_API_KEY") ?: (project.findProperty("tmdbKey") as String?) ?: "").trim()
 
 android {
     namespace = "com.cinedor.app"
@@ -14,7 +16,10 @@ android {
         targetSdk = 34
         versionCode = vCode
         versionName = vName
+        buildConfigField("String", "TMDB_API_KEY", "\"" + tmdbKey.replace("\"", "") + "\"")
     }
+
+    buildFeatures { buildConfig = true }
 
     sourceSets {
         getByName("main") {

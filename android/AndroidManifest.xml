@@ -30,6 +30,15 @@
             android:exported="false" />
 
         <activity
+            android:name=".CategoryActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".AppSettingsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name=".PlayerActivity"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
             android:exported="false"

@@ -38,6 +38,7 @@ public class MovieDetailActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         ApiConfig.init(this);
+        Tmdb.init(this);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().setBackgroundDrawable(Ui.appBackground(this));
         setContentView(R.layout.activity_movie_detail);

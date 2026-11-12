@@ -10,9 +10,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version (যেমন 2.0.0) — প্রতিবার বাড়াবে"
-        required: true
-        default: "2.0.0"
+        description: "Version (যেমন 2.1.0) — খালি রাখলে নিজে থেকে নম্বর বসবে"
+        required: false
+        default: ""
       notes:
         description: "কী নতুন"
         required: false
@@ -27,18 +27,28 @@ jobs:
     env:
       KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
       KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
       IN_VERSION: ${{ inputs.version }}
+      RUN_NO: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Version
         run: |
           VER="${IN_VERSION#v}"
-          [ -z "$VER" ] && VER="2.0.0"
+          [ -z "$VER" ] && VER="2.1.$RUN_NO"
           if ! [[ "$VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "::error::Version must look like 2.0.0"; exit 1; fi
           IFS=. read -r MA MI PA <<< "$VER"
           echo "VER=$VER" >> "$GITHUB_ENV"
-          echo "CODE=$(( 10#$MA * 10000 + 10#$MI * 100 + 10#$PA ))" >> "$GITHUB_ENV"
+          echo "CODE=$(( 10#$MA * 1000000 + 10#$MI * 10000 + 10#$PA ))" >> "$GITHUB_ENV"
+
+      - name: TMDB key check
+        run: |
+          if [ -z "$TMDB_API_KEY" ]; then
+            echo "::warning::TMDB_API_KEY secret নেই — অ্যাপে TMDB key বিল্ট-ইন থাকবে না (Settings › App Settings-এ দিতে হবে)"
+          else
+            echo "TMDB key: set (hidden)"
+          fi
 
       - name: Keystore
         run: |
@@ -70,14 +80,18 @@ jobs:
           path: Cinedor-v${{ env.VER }}.apk
 
       - name: Publish release
-        if: github.event_name == 'workflow_dispatch'
+        # Every push to main (and every manual run) publishes a GitHub Release with the APK
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: player-v${{ env.VER }}
+          tag_name: v${{ env.VER }}
           name: Cinedor v${{ env.VER }}
-          body: ${{ inputs.notes }}
+          body: |
+            ${{ inputs.notes || github.event.head_commit.message || 'Cinedor update' }}
+
+            ডাউনলোড: নিচের Cinedor-v${{ env.VER }}.apk
           files: Cinedor-v${{ env.VER }}.apk
-          make_latest: false
+          make_latest: true
 
       - name: Clean
         if: always()

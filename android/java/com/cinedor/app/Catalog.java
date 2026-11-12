@@ -34,7 +34,23 @@ public final class Catalog {
         return null;
     }
 
+    /** Your own title matching a TMDB result (same name, and year when both have one). */
+    public static Video match(String tmdbType, String title, String year) {
+        String n = norm(title);
+        if (n.isEmpty()) return null;
+        for (Video v : items) {
+            if (("tv".equals(tmdbType)) != v.isSeries()) continue;
+            if (norm(v.title).equals(n) && (year.isEmpty() || v.year.isEmpty() || v.year.equals(year))) return v;
+        }
+        return null;
+    }
+
+    private static String norm(String s) {
+        return s == null ? "" : s.toLowerCase(java.util.Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+", "");
+    }
+
     public static void load(boolean force, Callback cb) {
+        if (!ApiConfig.hasServer()) { items = Collections.emptyList(); loaded = true; cb.done(items, null); return; }
         if (loaded && !force) { cb.done(items, null); return; }
         IO.execute(() -> {
             try {

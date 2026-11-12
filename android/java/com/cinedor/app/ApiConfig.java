@@ -13,8 +13,8 @@ import java.nio.charset.StandardCharsets;
 /** Server address + optional token (editable in Settings), and a tiny HTTP GET helper. */
 public final class ApiConfig {
 
-    /** Default server address — change it here or later inside the app (Settings). */
-    public static final String DEFAULT_BASE_URL = "http://192.168.0.104:3000";
+    /** Optional personal server for your own videos. Empty = not used (the app works with TMDB alone). */
+    public static final String DEFAULT_BASE_URL = "";
 
     private static final String PREFS = "server";
     private static volatile String baseUrl = DEFAULT_BASE_URL;
@@ -36,23 +36,25 @@ public final class ApiConfig {
     }
 
     public static String baseUrl() { return baseUrl; }
+    public static boolean hasServer() { return !baseUrl.isEmpty(); }
     public static String token() { return token; }
 
     /** True when requests to this url should carry our token. */
     public static boolean needsToken(String url) {
-        return !token.isEmpty() && url != null && url.startsWith(baseUrl);
+        return !token.isEmpty() && !baseUrl.isEmpty() && url != null && url.startsWith(baseUrl);
     }
 
     /** Turns a server-relative path into an absolute url. */
     public static String abs(String u) {
         if (u == null || u.isEmpty() || "null".equals(u)) return "";
         if (u.contains("://")) return u;
+        if (baseUrl.isEmpty()) return "";
         return baseUrl + (u.startsWith("/") ? u : "/" + u);
     }
 
     private static String clean(String s) {
         s = s == null ? "" : s.trim();
-        if (s.isEmpty()) s = DEFAULT_BASE_URL;
+        if (s.isEmpty()) return "";
         if (!s.startsWith("http://") && !s.startsWith("https://")) s = "http://" + s;
         while (s.endsWith("/")) s = s.substring(0, s.length() - 1);
         return s;
@@ -63,6 +65,7 @@ public final class ApiConfig {
     public static String post(String path, String json) throws Exception { return request("POST", path, json); }
 
     private static String request(String method, String path, String body) throws Exception {
+        if (baseUrl.isEmpty()) throw new Exception("no server set");
         HttpURLConnection c = (HttpURLConnection) new URL(baseUrl + path).openConnection();
         c.setConnectTimeout(10000);
         c.setReadTimeout(25000);

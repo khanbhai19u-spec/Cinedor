@@ -52,6 +52,6 @@ final class Grid {
 
     /** Floating nav bar width. */
     static int navWidth(Context c) {
-        return Math.min(m(c).widthPixels - Ui.dp(c, 40), Ui.dp(c, 440));
+        return Math.min(m(c).widthPixels - Ui.dp(c, 48), Ui.dp(c, 360));
     }
 }

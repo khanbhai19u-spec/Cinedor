@@ -12,7 +12,7 @@
   --card-w: clamp(108px, 30vw, 168px);
   --hero-w: min(78vw, 380px);
   --radius-lg: clamp(26px, 7vw, 38px);
-  --nav-h: 68px;
+  --nav-h: 56px;
   --safe-b: env(safe-area-inset-bottom, 0px);
   color-scheme: dark;
 }
@@ -249,20 +249,20 @@ svg { width: 24px; height: 24px; fill: currentColor; flex: none; }
 /* ---------- bottom nav ---------- */
 .nav {
   position: fixed; z-index: 10; left: 50%; transform: translateX(-50%);
-  bottom: calc(14px + var(--safe-b)); width: min(calc(100% - 2 * var(--gutter) - 16px), 440px); height: var(--nav-h);
-  display: flex; gap: 4px; padding: 7px; border-radius: 36px;
+  bottom: calc(14px + var(--safe-b)); width: min(calc(100% - 2 * var(--gutter) - 16px), 360px); height: var(--nav-h);
+  display: flex; gap: 4px; padding: 5px; border-radius: 29px;
   background: rgba(26, 27, 33, .82); border: 1px solid #2C2E35;
   backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
   box-shadow: 0 10px 30px rgba(0,0,0,.35);
 }
 .nav a {
   flex: 1 1 0; display: flex; align-items: center; justify-content: center; gap: 10px;
-  border-radius: 30px; color: #D5D7DE; transition: flex-grow .25s ease, background .25s;
+  border-radius: 24px; color: #D5D7DE; gap: 7px; transition: flex-grow .25s ease, background .25s;
   min-width: 0;
 }
-.nav a svg { width: 27px; height: 27px; }
-.nav a span { display: none; font-weight: 700; font-size: 17px; white-space: nowrap; }
-.nav a.on { flex-grow: 2.1; background: var(--accent-soft); color: var(--accent); }
+.nav a svg { width: 22px; height: 22px; }
+.nav a span { display: none; font-weight: 700; font-size: 14px; white-space: nowrap; }
+.nav a.on { flex-grow: 1.9; background: var(--accent-soft); color: var(--accent); }
 .nav a.on span { display: inline; }
 .hide-nav .nav { display: none; }
 
@@ -276,9 +276,8 @@ svg { width: 24px; height: 24px; fill: currentColor; flex: none; }
 
 /* ---------- small phones ---------- */
 @media (max-width: 360px) {
-  :root { --nav-h: 62px; }
-  .nav a span { font-size: 15px; }
-  .nav a svg { width: 24px; height: 24px; }
+  :root { --nav-h: 52px; }
+  .nav a span { font-size: 13px; }
   .chip { height: 46px; padding: 0 18px; font-size: 15px; }
 }
 

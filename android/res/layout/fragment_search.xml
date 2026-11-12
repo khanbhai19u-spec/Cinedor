@@ -47,7 +47,7 @@
             android:paddingStart="12dp"
             android:paddingTop="16dp"
             android:paddingEnd="12dp"
-            android:paddingBottom="120dp" />
+            android:paddingBottom="96dp" />
 
         <include layout="@layout/view_empty" />
     </FrameLayout>

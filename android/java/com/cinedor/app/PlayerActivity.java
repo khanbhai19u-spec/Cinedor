@@ -57,6 +57,7 @@ public class PlayerActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         ApiConfig.init(this);
+        Tmdb.init(this);
         setContentView(R.layout.activity_player);
         playerView = findViewById(R.id.playerView);
         TextView tvTitle = findViewById(R.id.tvPlayerTitle);

@@ -42,19 +42,20 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         ApiConfig.init(this);
+        Tmdb.init(this);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().setBackgroundDrawable(Ui.appBackground(this));
         setContentView(R.layout.activity_main);
 
         View host = findViewById(R.id.fragmentHost);
         nav = findViewById(R.id.navBar);
-        nav.setBackground(Ui.round(0xE61A1B21, Ui.dp(this, 36), Ui.dp(this, 1), 0xFF2C2E35));
+        nav.setBackground(Ui.round(0xEB1A1B21, Ui.dp(this, 29), Ui.dp(this, 1), 0xFF2C2E35));
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.root), (v, insets) -> {
             Insets b = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             host.setPadding(b.left, b.top, b.right, 0);
             FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) nav.getLayoutParams();
-            lp.bottomMargin = b.bottom + Ui.dp(this, 14);
+            lp.bottomMargin = b.bottom + Ui.dp(this, 10);
             lp.width = Grid.navWidth(this);
             lp.gravity = android.view.Gravity.BOTTOM | android.view.Gravity.CENTER_HORIZONTAL;
             lp.leftMargin = 0;
@@ -123,9 +124,9 @@ public class MainActivity extends AppCompatActivity {
             View item = navItems[i];
             boolean on = i == current;
             LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) item.getLayoutParams();
-            lp.weight = on ? 2.1f : 1f;
+            lp.weight = on ? 1.9f : 1f;
             item.setLayoutParams(lp);
-            item.setBackground(on ? Ui.round(0xFF2A3566, Ui.dp(this, 30)) : null);
+            item.setBackground(on ? Ui.round(0xFF2A3566, Ui.dp(this, 24)) : null);
             item.findViewById(R.id.navLabel).setVisibility(on ? View.VISIBLE : View.GONE);
             ImageViewCompat.setImageTintList(item.findViewById(R.id.navIcon),
                     ColorStateList.valueOf(on ? accent : 0xFFD5D7DE));
@@ -137,6 +138,13 @@ public class MainActivity extends AppCompatActivity {
     protected void onSaveInstanceState(Bundle out) {
         out.putInt("tab", Math.max(current, 0));
         super.onSaveInstanceState(out);
+    }
+
+    /** Opens the Library tab on Favorites (0), History (1) or Downloads (2). */
+    public void openLibrary(int tab) {
+        select(2);
+        Fragment f = getSupportFragmentManager().findFragmentByTag(TAGS[2]);
+        if (f instanceof LibraryFragment) ((LibraryFragment) f).showTab(tab);
     }
 
     /** Lets a tab ask the activity to reload (e.g. after server change). */
