@@ -1,7 +1,19 @@
-# Cinedor — পারসোনাল ভিডিও সার্ভার + Android প্লেয়ার
+# Cinedor — পারসোনাল স্ট্রিমিং অ্যাপ + সার্ভার
 
-এটা শুধু **তোমার নিজের ভিডিও** চালানোর জন্য। সার্ভার কেবল `media` ফোল্ডারের ফাইল দেয়, বাইরের কোনো সাইট থেকে কিছু আনে না।
-সাপোর্ট করে: **MP4** (360p / 720p / 1080p) আর **HLS (.m3u8)**, ExoPlayer দিয়ে ফুলস্ক্রিন প্লে, আর DownloadManager দিয়ে ডাউনলোড।
+তোমার **নিজের ভিডিও** (ফ্যামিলি ভিডিও, নিজের বানানো কনটেন্ট, যেগুলোর রাইট তোমার আছে) সুন্দর একটা স্ট্রিমিং-অ্যাপ স্টাইলে চালানোর জন্য।
+সার্ভার শুধু `backend/media` ফোল্ডারের ফাইল দেয়, বাইরের কোনো সাইট থেকে কিছু আনে না।
+
+## অ্যাপে যা আছে
+| স্ক্রিন | কী আছে |
+|---|---|
+| **Home** | বড় পোস্টার carousel (দুই পাশের কার্ড উঁকি দেয়, auto-slide, dot indicator), সাদা **Play** বাটন, **Continue watching** (প্রোগ্রেস বার সহ), Recently added / Movies / Series সারি, pull-to-refresh |
+| **Search** | টাইপ করার সাথে সাথে রেজাল্ট (টাইটেল, জনরা, সাল), ৩ কলাম গ্রিড |
+| **Library** | **Favorites / History / Downloads** ট্যাব (সংখ্যা সহ), লং-প্রেস করে রিমুভ |
+| **Settings** | সার্ভারের ঠিকানা আর টোকেন অ্যাপের ভেতর থেকেই বদলানো যায়, কানেকশন টেস্ট, হিস্টরি/ফেভারিট মুছা |
+| **Detail** | পোস্টার, Play / Resume, Download, বুকমার্ক, সিরিজ হলে এপিসোড লিস্ট |
+| **Player** | ExoPlayer (MP4 + HLS), ফুলস্ক্রিন, ±১০ সেকেন্ড, যেখানে থেমেছিলে সেখান থেকে আবার চলে |
+
+নিচে ভাসমান pill-shaped নেভিগেশন বার — সিলেক্ট করা ট্যাব চওড়া হয়ে নাম দেখায়।
 
 ---
 
@@ -10,56 +22,72 @@
 ```bash
 pkg install nodejs -y          # Termux-এ (PC-তে nodejs.org থেকে Node 18+)
 cd backend
-npm install
-PUBLIC_BASE_URL=http://192.168.1.100:3000 npm start
+npm start                      # কোনো npm install লাগবে না
 ```
-- `192.168.1.100` জায়গায় সার্ভার যে ফোন/PC-তে চলছে তার Wi-Fi IP দাও (Termux: `ifconfig` → `wlan0` → `inet`)।
-- লক করতে চাইলে: `APP_TOKEN=myPass123 PUBLIC_BASE_URL=... npm start` — তাহলে অ্যাপেও একই টোকেন দিতে হবে।
-- চেক: ব্রাউজারে `http://192.168.1.100:3000/api/videos`
+- চেক: ব্রাউজারে `http://<ফোন/PC-এর IP>:3000/api/videos`
+  (Termux-এ IP দেখতে: `ifconfig` → `wlan0` → `inet`)
+- লক করতে চাইলে: `APP_TOKEN=myPass123 npm start` — তারপর অ্যাপের Settings-এ একই টোকেন দাও।
+- পোর্ট বদলাতে: `PORT=5000 npm start`
 
 ### ভিডিও রাখার নিয়ম
 ```
 backend/media/
-  My Trip 2026/
-    info.json      {"title":"My Trip","year":"2026","description":"..."}   (ঐচ্ছিক)
-    poster.jpg                                                          (ঐচ্ছিক)
+  My Trip 2026/                     ← একটা মুভি
+    info.json     (ঐচ্ছিক)
+    poster.jpg    (ঐচ্ছিক, খাড়া পোস্টার — Home carousel-এ এটাই দেখায়)
     360p.mp4
     720p.mp4
     1080p.mp4
-    hls/master.m3u8  (+ .ts ফাইলগুলো)                                     (ঐচ্ছিক)
-```
-ফাইলের নামে `360p` / `720p` / `1080p` থাকলেই কোয়ালিটি নিজে চিনে নেবে। নতুন ফোল্ডার দিলে ৩০ সেকেন্ডের মধ্যে অ্যাপে চলে আসে।
+    hls/master.m3u8  (+ .ts ফাইল)   (ঐচ্ছিক)
 
-### নিজের ভিডিও থেকে কোয়ালিটি আর HLS বানানো (ffmpeg)
+  Family Vlog/                      ← একটা সিরিজ (ভেতরে এপিসোড ফোল্ডার)
+    info.json
+    poster.jpg
+    E01 Arrival/720p.mp4
+    E02 Beach/720p.mp4
+```
+`info.json` উদাহরণ:
+```json
+{ "title": "My Trip", "year": 2026, "genre": "Travel", "description": "Summer trip with family", "featured": true }
+```
+- ফাইলের নামে `360p` / `720p` / `1080p` থাকলে কোয়ালিটি নিজে চিনে নেয়।
+- `"featured": false` দিলে Home-এর বড় carousel-এ দেখাবে না (সারিতে দেখাবে)।
+- নতুন ফোল্ডার দিলে ৩০ সেকেন্ডের মধ্যে অ্যাপে চলে আসে (Home-এ refresh চাপো)।
+
+### ffmpeg দিয়ে কোয়ালিটি আর HLS বানানো
 ```bash
 pkg install ffmpeg -y
-# 720p আর 360p কপি
 ffmpeg -i myvideo.mp4 -vf scale=-2:720 -c:v libx264 -crf 23 -preset veryfast -c:a aac -movflags +faststart 720p.mp4
 ffmpeg -i myvideo.mp4 -vf scale=-2:360 -c:v libx264 -crf 26 -preset veryfast -c:a aac -movflags +faststart 360p.mp4
-# HLS (.m3u8) — স্ট্রিমিং দ্রুত শুরু হয়
 mkdir hls && ffmpeg -i 720p.mp4 -c copy -hls_time 6 -hls_playlist_type vod -hls_segment_filename "hls/seg_%03d.ts" hls/master.m3u8
 ```
-`-movflags +faststart` দিলে MP4 ডাউনলোড শেষ হওয়ার আগেই প্লে শুরু হয়।
 
 ---
 
-## ২. Android অ্যাপে যোগ করা
+## ২. APK বানানো (GitHub Actions)
 
-1. `android/java/com/cinedor/app/` এর ৫টা `.java` ফাইল তোমার প্রজেক্টের `app/src/main/java/com/cinedor/app/` এ রাখো
-   (তোমার package নাম আলাদা হলে প্রতিটা ফাইলের প্রথম লাইন বদলাও)।
-2. `android/res/` এর `layout/`, `values/strings.xml`, `xml/network_security_config.xml` → `app/src/main/res/` এ।
-3. `build.gradle-dependencies.txt` দেখে dependencies যোগ করো।
-4. `AndroidManifest-additions.xml` দেখে permission, activity আর `networkSecurityConfig` যোগ করো।
-5. `ApiConfig.java` তে `BASE_URL` (সার্ভারের IP) আর দরকার হলে `APP_TOKEN` বসাও।
+- `android/` ফোল্ডারে কিছু বদলে push করলেই **Actions** ট্যাবে বিল্ড চলে। রান শেষ হলে রানের পেজের নিচে
+  **Artifacts** থেকে `Cinedor-v….apk` নামাও।
+- Release বানাতে: **Actions → Build Cinedor (Android) → Run workflow** → version দাও (যেমন `2.0.1`)।
+- একই key দিয়ে সাইন করতে `KEYSTORE_BASE64` আর `KEYSTORE_PASSWORD` secret রাখো (alias `cinedor`)।
 
-### কোন ফাইল কী করে
-| ফাইল | কাজ |
-|---|---|
-| `VideoListActivity` | সার্ভারের সব ভিডিওর লিস্ট |
-| `MovieDetailActivity` | টাইটেল, পোস্টার, বিবরণ; **Watch / Download** চাপলে কোয়ালিটি BottomSheet |
-| `PlayerActivity` | Media3 ExoPlayer — MP4 + HLS, ফুলস্ক্রিন ল্যান্ডস্কেপ, ±১০ সেকেন্ড, ঘোরালে/ফিরে এলে আগের জায়গা থেকে চলে |
-| `VideoDownloader` | DownloadManager → `Movies/Cinedor/` ফোল্ডারে, নোটিফিকেশন সহ (শুধু তোমার সার্ভারের MP4) |
-| `ApiConfig` | সার্ভারের ঠিকানা, টোকেন, HTTP helper |
+প্রথমবার অ্যাপ খুলে **Settings**-এ সার্ভারের ঠিকানা দাও (যেমন `http://192.168.0.104:3000`) → **Save & test connection**।
+ডিফল্ট ঠিকানা বদলাতে চাইলে `android/java/com/cinedor/app/ApiConfig.java` এর `DEFAULT_BASE_URL`।
 
-**নোট:** HLS (.m3u8) শুধু স্ট্রিম হয়, DownloadManager দিয়ে নামানো যায় না — ডাউনলোডের জন্য MP4 কোয়ালিটি রাখো।
-অনলাইনে (বাসার বাইরে থেকে) চালাতে চাইলে সার্ভারে HTTPS দাও (যেমন Cloudflare Tunnel) আর `APP_TOKEN` অবশ্যই চালু রাখো।
+### ফোল্ডার
+```
+backend/server.js        Node সার্ভার (কোনো dependency নেই)
+android/AndroidManifest.xml
+android/java/com/cinedor/app/
+  MainActivity           নিচের নেভ বার + ৪টা ট্যাব
+  HomeFragment           carousel, continue watching, সারি
+  SearchFragment / LibraryFragment / SettingsFragment
+  MovieDetailActivity    টাইটেল পেজ
+  PlayerActivity         ExoPlayer, প্রোগ্রেস সেভ
+  Playback               কোয়ালিটি বাছাই শিট, play/resume/download
+  Catalog / Store        সার্ভারের লিস্ট / ফোনে favorites-history-downloads
+android/res/             layout, drawable (আইকন), values (রং, থিম, টেক্সট)
+```
+
+**নোট:** HLS (.m3u8) শুধু স্ট্রিম হয়, ডাউনলোডের জন্য MP4 রাখো।
+বাসার বাইরে থেকে চালাতে চাইলে সার্ভারে HTTPS দাও (যেমন Cloudflare Tunnel) আর `APP_TOKEN` অবশ্যই চালু রাখো।

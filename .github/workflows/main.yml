@@ -1,16 +1,22 @@
-name: Build Cinedor Player (Java)
+name: Build Cinedor (Android)
 
 on:
+  push:
+    paths:
+      - "android/**"
+      - "*.gradle.kts"
+      - "gradle.properties"
+      - ".github/workflows/main.yml"
   workflow_dispatch:
     inputs:
       version:
-        description: "Version (যেমন 1.0.0) — প্রতিবার বাড়াবে"
+        description: "Version (যেমন 2.0.0) — প্রতিবার বাড়াবে"
         required: true
-        default: "1.0.0"
+        default: "2.0.0"
       notes:
         description: "কী নতুন"
         required: false
-        default: "Personal video player update"
+        default: "Cinedor update"
 
 permissions:
   contents: write
@@ -22,118 +28,22 @@ jobs:
       KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
       KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
       IN_VERSION: ${{ inputs.version }}
-      IN_NOTES: ${{ inputs.notes }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Version
         run: |
           VER="${IN_VERSION#v}"
-          if ! [[ "$VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "::error::Version must look like 1.0.0"; exit 1; fi
+          [ -z "$VER" ] && VER="2.0.0"
+          if ! [[ "$VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "::error::Version must look like 2.0.0"; exit 1; fi
           IFS=. read -r MA MI PA <<< "$VER"
           echo "VER=$VER" >> "$GITHUB_ENV"
           echo "CODE=$(( 10#$MA * 10000 + 10#$MI * 100 + 10#$PA ))" >> "$GITHUB_ENV"
 
-      - name: Make Android project from uploaded files
-        run: |
-          python3 - <<'PY'
-          import os, re, shutil, glob, sys
-          B = '_build'
-          shutil.rmtree(B, ignore_errors=True)
-          skip = lambda f: ' (' in f or f.startswith('_build')
-          files = [f for f in os.listdir('.') if os.path.isfile(f) and not skip(f)]
-          javas = [f for f in files if f.endswith('.java')]
-          if not javas:
-              print('::error::কোনো .java ফাইল পাওয়া যায়নি'); sys.exit(1)
-          pkg = None
-          for j in javas:
-              m = re.search(r'^\s*package\s+([\w.]+)\s*;', open(j, encoding='utf-8').read(), re.M)
-              if m: pkg = m.group(1); break
-          pkg = pkg or 'com.cinedor.app'
-          print('Package:', pkg)
-          src = f'{B}/app/src/main'
-          jdir = f'{src}/java/' + pkg.replace('.', '/')
-          for d in [jdir, f'{src}/res/layout', f'{src}/res/values', f'{src}/res/xml', f'{src}/res/mipmap-xxxhdpi', f'{src}/res/drawable-nodpi', f'{src}/res/mipmap-anydpi-v26']:
-              os.makedirs(d, exist_ok=True)
-          for j in javas: shutil.copy(j, jdir)
-          for x in [f for f in files if f.endswith('.xml')]:
-              if x.startswith('AndroidManifest'): continue
-              if x == 'strings.xml': shutil.copy(x, f'{src}/res/values/')
-              elif x == 'network_security_config.xml': shutil.copy(x, f'{src}/res/xml/')
-              else: shutil.copy(x, f'{src}/res/layout/')
-          icons = ''
-          if os.path.exists('ic_launcher.png'):
-              shutil.copy('ic_launcher.png', f'{src}/res/mipmap-xxxhdpi/')
-              shutil.copy('ic_launcher_round.png' if os.path.exists('ic_launcher_round.png') else 'ic_launcher.png', f'{src}/res/mipmap-xxxhdpi/ic_launcher_round.png')
-              icons = 'android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round"'
-              if os.path.exists('ic_launcher_foreground.png'):
-                  shutil.copy('ic_launcher_foreground.png', f'{src}/res/drawable-nodpi/')
-                  ad = '<?xml version="1.0" encoding="utf-8"?>\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n  <background android:drawable="@color/icon_bg"/>\n  <foreground android:drawable="@drawable/ic_launcher_foreground"/>\n</adaptive-icon>\n'
-                  for n in ['ic_launcher.xml', 'ic_launcher_round.xml']: open(f'{src}/res/mipmap-anydpi-v26/{n}', 'w').write(ad)
-          open(f'{src}/res/values/colors_gen.xml', 'w').write('<?xml version="1.0" encoding="utf-8"?>\n<resources><color name="icon_bg">#0E0F12</color></resources>\n')
-          if not os.path.exists(f'{src}/res/values/strings.xml'):
-              open(f'{src}/res/values/strings.xml', 'w').write('<resources><string name="app_name">Cinedor</string></resources>')
-          nsc = 'android:networkSecurityConfig="@xml/network_security_config"' if os.path.exists('network_security_config.xml') else 'android:usesCleartextTraffic="true"'
-          names = [j[:-5] for j in javas]
-          launcher = 'VideoListActivity' if 'VideoListActivity' in names else ('MainActivity' if 'MainActivity' in names else None)
-          acts = []
-          for n in names:
-              code = open(f'{n}.java', encoding='utf-8').read()
-              if not re.search(r'extends\s+\w*Activity\b', code): continue
-              extra = ''
-              if n == 'PlayerActivity':
-                  extra = ' android:screenOrientation="sensorLandscape" android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"'
-              if n == launcher:
-                  acts.append(f'    <activity android:name="{pkg}.{n}" android:exported="true"{extra}>\n      <intent-filter>\n        <action android:name="android.intent.action.MAIN"/>\n        <category android:name="android.intent.category.LAUNCHER"/>\n      </intent-filter>\n    </activity>')
-              else:
-                  acts.append(f'    <activity android:name="{pkg}.{n}" android:exported="false"{extra}/>')
-          open(f'{src}/AndroidManifest.xml', 'w').write(f'''<?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-            <uses-permission android:name="android.permission.INTERNET"/>
-            <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28"/>
-            <application android:label="Cinedor Player" {icons} {nsc} android:theme="@style/Theme.Material3.Dark.NoActionBar">
-          {chr(10).join(acts)}
-            </application>
-          </manifest>
-          ''')
-          open(f'{B}/settings.gradle.kts', 'w').write('''pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
-          dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }
-          rootProject.name = "CinedorPlayer"
-          include(":app")
-          ''')
-          open(f'{B}/build.gradle.kts', 'w').write('plugins { id("com.android.application") version "8.5.2" apply false }\n')
-          open(f'{B}/gradle.properties', 'w').write('org.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8\nandroid.useAndroidX=true\nandroid.nonTransitiveRClass=true\n')
-          appid = os.environ.get('APP_ID') or 'com.cinedor.player'
-          open(f'{B}/app/build.gradle.kts', 'w').write(f'''plugins {{ id("com.android.application") }}
-          val vName = (project.findProperty("vName") as String?) ?: "1.0.0"
-          val vCode = (project.findProperty("vCode") as String?)?.toIntOrNull() ?: 1
-          val ks = file("release.jks")
-          android {{
-              namespace = "{pkg}"
-              compileSdk = 34
-              defaultConfig {{ applicationId = "{appid}"; minSdk = 24; targetSdk = 34; versionCode = vCode; versionName = vName }}
-              signingConfigs {{ create("release") {{ if (ks.exists()) {{ storeFile = ks; storePassword = System.getenv("KEYSTORE_PASSWORD"); keyAlias = "cinedor"; keyPassword = System.getenv("KEYSTORE_PASSWORD") }} }} }}
-              buildTypes {{ release {{ isMinifyEnabled = false; signingConfig = if (ks.exists()) signingConfigs.getByName("release") else signingConfigs.getByName("debug") }} }}
-              compileOptions {{ sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }}
-              lint {{ abortOnError = false; checkReleaseBuilds = false }}
-          }}
-          dependencies {{
-              implementation("androidx.appcompat:appcompat:1.7.0")
-              implementation("com.google.android.material:material:1.12.0")
-              implementation("androidx.media3:media3-exoplayer:1.4.1")
-              implementation("androidx.media3:media3-exoplayer-hls:1.4.1")
-              implementation("androidx.media3:media3-ui:1.4.1")
-          }}
-          ''')
-          print('Activities:', names, 'launcher:', launcher)
-          for r, d, fs in os.walk(B):
-              for f in fs: print(' ', os.path.join(r, f))
-          PY
-
       - name: Keystore
         run: |
           if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > _build/app/release.jks
+            echo "$KEYSTORE_BASE64" | base64 -d > android/release.jks
           else
             echo "::warning::KEYSTORE_BASE64 secret নেই — debug key দিয়ে সাইন হবে (পরের আপডেট ইনস্টলে সমস্যা হতে পারে)"
           fi
@@ -148,20 +58,27 @@ jobs:
           gradle-version: "8.9"
 
       - name: Build APK
-        run: gradle -p _build :app:assembleRelease -PvName="$VER" -PvCode="$CODE" --no-daemon --stacktrace
+        run: gradle :app:assembleRelease -PvName="$VER" -PvCode="$CODE" --no-daemon --stacktrace
 
       - name: Rename
-        run: cp _build/app/build/outputs/apk/release/app-release.apk "CinedorPlayer-v$VER.apk"
+        run: cp android/build/outputs/apk/release/app-release.apk "Cinedor-v$VER.apk"
+
+      - name: Upload APK (download from the run page)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cinedor-v${{ env.VER }}
+          path: Cinedor-v${{ env.VER }}.apk
 
       - name: Publish release
+        if: github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: player-v${{ env.VER }}
-          name: Cinedor Player v${{ env.VER }}
-          body: ${{ env.IN_NOTES }}
-          files: CinedorPlayer-v${{ env.VER }}.apk
+          name: Cinedor v${{ env.VER }}
+          body: ${{ inputs.notes }}
+          files: Cinedor-v${{ env.VER }}.apk
           make_latest: false
 
       - name: Clean
         if: always()
-        run: rm -f _build/app/release.jks || true
+        run: rm -f android/release.jks || true
