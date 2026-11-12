@@ -15,6 +15,7 @@
             android:orientation="vertical">
 
             <FrameLayout
+                android:id="@+id/posterBox"
                 android:layout_width="match_parent"
                 android:layout_height="480dp">
 
@@ -102,6 +103,47 @@
                     app:iconPadding="10dp"
                     app:iconTint="@color/text" />
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnTrailer"
+                    android:layout_width="match_parent"
+                    android:layout_height="58dp"
+                    android:layout_marginTop="10dp"
+                    android:backgroundTint="@color/surface2"
+                    android:text="Watch trailer"
+                    android:textAllCaps="false"
+                    android:textColor="@color/text"
+                    android:textSize="16sp"
+                    android:visibility="gone"
+                    app:cornerRadius="29dp"
+                    app:icon="@drawable/ic_play"
+                    app:iconGravity="textStart"
+                    app:iconPadding="10dp"
+                    app:iconTint="@color/text" />
+
+                <TextView
+                    android:id="@+id/tvNote"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_field"
+                    android:gravity="center"
+                    android:padding="14dp"
+                    android:text="Not in your library. Add the file to your server's media folder to play it here."
+                    android:textColor="@color/text2"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/tvTagline"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    android:gravity="center"
+                    android:textColor="@color/text2"
+                    android:textSize="15sp"
+                    android:textStyle="italic"
+                    android:visibility="gone" />
+
                 <TextView
                     android:id="@+id/tvDesc"
                     android:layout_width="match_parent"
@@ -128,6 +170,16 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
                     android:orientation="vertical" />
+
+                <TextView
+                    android:id="@+id/tvCast"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="22dp"
+                    android:lineSpacingMultiplier="1.3"
+                    android:textColor="@color/text2"
+                    android:textSize="14sp"
+                    android:visibility="gone" />
             </LinearLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

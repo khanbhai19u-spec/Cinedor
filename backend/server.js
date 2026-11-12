@@ -5,17 +5,22 @@
 //   APP_TOKEN=secret     (optional) app must send the same token
 //   MEDIA_DIR=/path      (optional) default: ./media next to this file
 //   PUBLIC_BASE_URL=...  (optional) e.g. https://my.domain — otherwise taken from the request
+//   TMDB_API_KEY=...     (optional) TMDB key — or set it once in the web app's Settings
+//
+// Open http://<this-ip>:PORT in a phone browser for the web app.
 'use strict';
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const tmdb = require('./tmdb');
 
 const PORT = Number(process.env.PORT) || 3000;
 const MEDIA = path.resolve(process.env.MEDIA_DIR || path.join(__dirname, 'media'));
 const TOKEN = process.env.APP_TOKEN || '';
 const PUBLIC_BASE = (process.env.PUBLIC_BASE_URL || '').replace(/\/+$/, '');
 const CACHE_MS = 30_000;
+const PUBLIC_DIR = path.join(__dirname, 'public');
 
 const VIDEO_EXT = new Set(['.mp4', '.m4v', '.mkv', '.webm', '.mov']);
 const IMAGE_EXT = ['.jpg', '.jpeg', '.png', '.webp'];
@@ -24,7 +29,9 @@ const MIME = {
   '.mov': 'video/quicktime', '.m3u8': 'application/vnd.apple.mpegurl', '.ts': 'video/mp2t',
   '.m4s': 'video/iso.segment', '.vtt': 'text/vtt', '.srt': 'application/x-subrip',
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp',
-  '.json': 'application/json',
+  '.json': 'application/json', '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json',
+  '.ico': 'image/x-icon',
 };
 
 fs.mkdirSync(MEDIA, { recursive: true });
@@ -87,6 +94,9 @@ function scanTitle(dir, name) {
   const poster = findImage(dir, ['poster', 'cover', 'folder', 'thumb']);
   return {
     id: slug(name),
+    folder: name,
+    tmdbHint: info.tmdb || '',
+    hasLocalPoster: Boolean(poster),
     title: info.title || name,
     year: String(info.year || ''),
     type: info.type || (episodes.length ? 'series' : 'movie'),
@@ -112,15 +122,35 @@ function catalog() {
   }
   items.sort((a, b) => b.added - a.added);
   cache = { at: Date.now(), items };
+  tmdb.enrich(items).catch(() => {});
   return items;
+}
+
+/** Finds the local title matching a TMDB result (by TMDB id, else by name + year). */
+function findLocal(type, id, title, year) {
+  const n = tmdb.norm(title);
+  for (const t of catalog()) {
+    const m = tmdb.cachedMatch(t);
+    if (m && m.tmdbId === id && m.mediaType === type) return t.id;
+  }
+  for (const t of catalog()) {
+    const isTv = t.type === 'series';
+    if ((type === 'tv') !== isTv) continue;
+    if (tmdb.norm(t.title) === n && (!year || !t.year || String(t.year) === String(year))) return t.id;
+  }
+  return null;
 }
 
 function publicTitle(t, base) {
   const u = (rel) => (rel ? base + '/media/' + encPath(rel) : '');
   const q = (list) => list.map((x) => ({ label: x.label, type: x.type, size: x.size, url: u(x.rel) }));
+  const m = tmdb.cachedMatch(t) || {};
+  const poster = t.hasLocalPoster ? u(t.poster) : (m.poster || '');
   return {
-    id: t.id, title: t.title, year: t.year, type: t.type, genre: t.genre, description: t.description,
-    featured: t.featured, added: t.added, poster: u(t.poster), backdrop: u(t.backdrop),
+    id: t.id, title: t.title, year: t.year || m.year || '', type: t.type, genre: t.genre || m.genre || '',
+    description: t.description || m.description || '', featured: t.featured, added: t.added,
+    poster, backdrop: m.backdrop || (t.backdrop && t.backdrop !== t.poster ? u(t.backdrop) : poster),
+    rating: m.rating || 0, tmdbId: m.tmdbId || 0, mediaType: m.mediaType || '', trailer: m.trailer || '',
     qualities: q(t.qualities),
     episodes: t.episodes.map((e) => ({ id: e.id, title: e.title, qualities: q(e.qualities) })),
   };
@@ -155,32 +185,119 @@ function serveFile(req, res, rel) {
   fs.createReadStream(file).pipe(res);
 }
 
-const server = http.createServer((req, res) => {
+function readBody(req, limit = 64 * 1024) {
+  return new Promise((resolve, reject) => {
+    let size = 0; const chunks = [];
+    req.on('data', (c) => { size += c.length; if (size > limit) { reject(new Error('too big')); req.destroy(); } else chunks.push(c); });
+    req.on('end', () => { try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')); } catch { reject(new Error('bad json')); } });
+    req.on('error', reject);
+  });
+}
+
+function serveStatic(req, res, p) {
+  let rel = p === '/' ? 'index.html' : decodeURIComponent(p.slice(1));
+  let file = path.resolve(PUBLIC_DIR, rel);
+  if (!file.startsWith(PUBLIC_DIR + path.sep)) return false;
+  if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return false;
+  const type = MIME[path.extname(file).toLowerCase()] || 'application/octet-stream';
+  res.writeHead(200, { 'Content-Type': type, 'Cache-Control': type.startsWith('text/html') ? 'no-cache' : 'public, max-age=300' });
+  if (req.method === 'HEAD') return res.end(), true;
+  fs.createReadStream(file).pipe(res);
+  return true;
+}
+
+function authorized(req, url) {
+  if (!TOKEN) return true;
+  const given = req.headers['x-app-token'] || url.searchParams.get('token') || '';
+  const a = Buffer.from(String(given)), b = Buffer.from(TOKEN);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+async function handle(req, res) {
   const url = new URL(req.url, 'http://x');
-  if (TOKEN) {
-    const given = req.headers['x-app-token'] || url.searchParams.get('token') || '';
-    const a = Buffer.from(String(given)), b = Buffer.from(TOKEN);
-    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return send(res, 401, { error: 'bad token' });
-  }
-  const base = PUBLIC_BASE || `http://${req.headers.host}`;
   const p = url.pathname;
-  if (p === '/' || p === '/api') return send(res, 200, { name: 'Cinedor', ok: true, titles: catalog().length });
-  if (p === '/api/videos') return send(res, 200, { items: catalog().map((t) => publicTitle(t, base)) });
+  const isApi = p === '/api' || p.startsWith('/api/') || p.startsWith('/media/');
+
+  // The web app's own files are public; the API and your media need the token.
+  if (!isApi) {
+    if ((req.method === 'GET' || req.method === 'HEAD') && serveStatic(req, res, p)) return;
+    if (!p.includes('.') && serveStatic(req, res, '/')) return; // SPA fallback
+    return send(res, 404, { error: 'not found' });
+  }
+  if (!authorized(req, url)) return send(res, 401, { error: 'bad token' });
+
+  const base = PUBLIC_BASE || `http://${req.headers.host}`;
+  const local = () => catalog().map((t) => publicTitle(t, base));
+
+  if (p === '/api') return send(res, 200, { name: 'Cinedor', ok: true, titles: catalog().length, tmdb: tmdb.enabled() });
+  if (p === '/api/videos') return send(res, 200, { items: local() });
   if (p.startsWith('/api/videos/')) {
     const id = decodeURIComponent(p.slice('/api/videos/'.length));
     const t = catalog().find((x) => x.id === id);
     return t ? send(res, 200, publicTitle(t, base)) : send(res, 404, { error: 'not found' });
   }
+
+  if (p === '/api/config') {
+    if (req.method === 'POST') {
+      const body = await readBody(req);
+      const patch = {};
+      if (typeof body.tmdbKey === 'string') {
+        const k = body.tmdbKey.trim();
+        if (k) await tmdb.testKey(k);
+        patch.tmdbKey = k;
+      }
+      if (typeof body.language === 'string' && /^[a-z]{2}(-[A-Z]{2})?$/.test(body.language)) patch.language = body.language;
+      tmdb.saveConfig(patch);
+      cache.at = 0; // re-scan so new metadata is fetched
+    }
+    return send(res, 200, tmdb.publicConfig());
+  }
+
+  if (p === '/api/discover') {
+    if (!tmdb.enabled()) return send(res, 200, { enabled: false, rows: [] });
+    return send(res, 200, { enabled: true, rows: await tmdb.discover(findLocal) });
+  }
+
+  if (p === '/api/search') {
+    const q = (url.searchParams.get('q') || '').trim();
+    const library = q ? local().filter((t) => {
+      const s = (t.title + ' ' + t.genre + ' ' + t.year + ' ' + t.type).toLowerCase();
+      return q.toLowerCase().split(/\s+/).every((w) => s.includes(w));
+    }) : [];
+    let online = [], error = '';
+    if (q && tmdb.enabled()) {
+      try { online = await tmdb.search(q, findLocal); } catch (e) { error = e.message; }
+    }
+    return send(res, 200, { library, tmdb: online, error });
+  }
+
+  const m = p.match(/^\/api\/tmdb\/(movie|tv)\/(\d+)$/);
+  if (m) {
+    if (!tmdb.enabled()) return send(res, 400, { error: 'TMDB key not set' });
+    return send(res, 200, await tmdb.detail(m[1], m[2], findLocal));
+  }
+
   if (p.startsWith('/media/')) {
     let rel;
     try { rel = decodeURIComponent(p.slice('/media/'.length)); } catch { return send(res, 400, { error: 'bad path' }); }
     return serveFile(req, res, rel);
   }
   send(res, 404, { error: 'not found' });
+}
+
+const server = http.createServer((req, res) => {
+  handle(req, res).catch((e) => {
+    if (!res.headersSent) send(res, /TMDB|invalid|key/i.test(e.message) ? 502 : 500, { error: e.message });
+    else res.end();
+  });
 });
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Cinedor server on port ${PORT}`);
   console.log(`Media folder: ${MEDIA}`);
   console.log(TOKEN ? 'Token: ON' : 'Token: off (set APP_TOKEN to lock it)');
+  console.log(tmdb.enabled() ? 'TMDB: ON' : 'TMDB: off (add your key in the web app → Settings, or TMDB_API_KEY=...)');
+  for (const list of Object.values(require('os').networkInterfaces())) {
+    for (const a of list || []) if (a.family === 'IPv4' && !a.internal) console.log(`Open in your phone: http://${a.address}:${PORT}`);
+  }
 });

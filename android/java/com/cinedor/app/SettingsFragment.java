@@ -17,7 +17,8 @@ import androidx.fragment.app.Fragment;
 public class SettingsFragment extends Fragment implements MainActivity.Tab {
 
     private EditText server, token;
-    private TextView status;
+    private TextView status, tmdbStatus;
+    private EditText tmdbKey;
 
     @Nullable
     @Override
@@ -40,9 +41,26 @@ public class SettingsFragment extends Fragment implements MainActivity.Tab {
             Catalog.load(true, (items, error) -> {
                 if (getView() == null) return;
                 status.setText(error == null ? "✓ Connected — " + items.size() + " titles" : "✗ " + error);
+                refreshTmdb();
                 if (getActivity() instanceof MainActivity) ((MainActivity) getActivity()).refreshAll();
             });
         });
+
+        tmdbKey = v.findViewById(R.id.inputTmdb);
+        tmdbStatus = v.findViewById(R.id.tmdbStatus);
+        v.findViewById(R.id.btnTmdb).setOnClickListener(b -> {
+            String k = tmdbKey.getText().toString().trim();
+            if (k.isEmpty()) { tmdbStatus.setText("Paste your TMDB API key first"); return; }
+            tmdbStatus.setText("Checking the key with TMDB…");
+            Tmdb.config(k, null, (cfg, error) -> {
+                if (getView() == null) return;
+                if (error != null) { tmdbStatus.setText("✗ " + error); return; }
+                tmdbKey.setText("");
+                showTmdb(cfg);
+                if (getActivity() instanceof MainActivity) ((MainActivity) getActivity()).refreshAll();
+            });
+        });
+        refreshTmdb();
 
         v.findViewById(R.id.btnClearHistory).setOnClickListener(b -> confirm("Clear watch history?", () -> {
             Store.clearHistory(requireContext());
@@ -65,6 +83,21 @@ public class SettingsFragment extends Fragment implements MainActivity.Tab {
     @Override
     public void onShown() {
         if (server != null && !server.hasFocus()) server.setText(ApiConfig.baseUrl());
+        if (tmdbStatus != null) refreshTmdb();
+    }
+
+    private void refreshTmdb() {
+        Tmdb.config(null, null, (cfg, error) -> {
+            if (getView() == null) return;
+            if (error != null) tmdbStatus.setText("Server: " + error);
+            else showTmdb(cfg);
+        });
+    }
+
+    private void showTmdb(org.json.JSONObject cfg) {
+        tmdbStatus.setText(cfg.optBoolean("tmdbEnabled")
+                ? "✓ TMDB is on (key " + cfg.optString("tmdbKeyMasked") + ")"
+                : "TMDB is off — add your key above");
     }
 
     private void confirm(String msg, Runnable ok) {

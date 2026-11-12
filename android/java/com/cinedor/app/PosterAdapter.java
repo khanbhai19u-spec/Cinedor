@@ -55,7 +55,8 @@ public class PosterAdapter extends RecyclerView.Adapter<PosterAdapter.Holder> {
         List<Item> out = new ArrayList<>();
         for (Video v : videos) {
             Item it = new Item(v);
-            it.subtitle = v.meta().replace("  •  ", " • ");
+            String r = v.ratingText();
+            it.subtitle = (r.isEmpty() ? "" : r + "  ") + v.meta().replace("  •  ", " • ");
             out.add(it);
         }
         return out;

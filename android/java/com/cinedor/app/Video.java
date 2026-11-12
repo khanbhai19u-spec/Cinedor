@@ -53,6 +53,10 @@ public class Video {
     public final String id, title, year, type, genre, description, poster, backdrop;
     public final boolean featured;
     public final long added;
+    /** TMDB extras (0 / "" when unknown). */
+    public final double rating;
+    public final long tmdbId, runtime, seasons;
+    public final String mediaType, trailer, inLibrary, tagline, cast;
     public final List<Quality> qualities;
     public final List<Episode> episodes = new ArrayList<>();
 
@@ -68,6 +72,27 @@ public class Video {
         featured = o.optBoolean("featured", true);
         added = o.optLong("added", 0);
         qualities = qualities(o.optJSONArray("qualities"));
+        rating = o.optDouble("rating", 0);
+        tmdbId = o.optLong("tmdbId", 0);
+        runtime = o.optLong("runtime", 0);
+        seasons = o.optLong("seasons", 0);
+        mediaType = o.optString("mediaType", "");
+        trailer = o.optString("trailer", "");
+        inLibrary = o.isNull("inLibrary") ? "" : o.optString("inLibrary", "");
+        tagline = o.optString("tagline", "");
+        JSONArray castArr = o.optJSONArray("cast");
+        if (castArr != null) {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < castArr.length() && i < 10; i++) {
+                JSONObject c = castArr.optJSONObject(i);
+                if (c == null) continue;
+                if (sb.length() > 0) sb.append(", ");
+                sb.append(c.optString("name"));
+            }
+            cast = sb.toString();
+        } else {
+            cast = o.optString("castText", "");
+        }
         JSONArray eps = o.optJSONArray("episodes");
         if (eps != null) for (int i = 0; i < eps.length(); i++) {
             JSONObject e = eps.optJSONObject(i);
@@ -76,6 +101,11 @@ public class Video {
         String t = o.optString("type", "");
         type = t.isEmpty() ? (episodes.isEmpty() ? "movie" : "series") : t;
     }
+
+    /** A TMDB title (info + trailer only, not a file on your server). */
+    public boolean isTmdb() { return id.startsWith("tmdb:"); }
+
+    public String ratingText() { return rating > 0 ? String.format(Locale.US, "★ %.1f", rating) : ""; }
 
     public boolean isSeries() { return "series".equalsIgnoreCase(type) || !episodes.isEmpty(); }
 
@@ -109,7 +139,10 @@ public class Video {
             return new JSONObject().put("id", id).put("title", title).put("year", year).put("type", type)
                     .put("genre", genre).put("description", description).put("poster", poster)
                     .put("backdrop", backdrop).put("featured", featured).put("added", added)
-                    .put("qualities", toArray(qualities)).put("episodes", eps);
+                    .put("qualities", toArray(qualities)).put("episodes", eps)
+                    .put("rating", rating).put("tmdbId", tmdbId).put("runtime", runtime).put("seasons", seasons)
+                    .put("mediaType", mediaType).put("trailer", trailer).put("inLibrary", inLibrary)
+                    .put("tagline", tagline).put("castText", cast);
         } catch (JSONException e) {
             return new JSONObject();
         }

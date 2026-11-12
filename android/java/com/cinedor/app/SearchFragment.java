@@ -31,6 +31,9 @@ public class SearchFragment extends Fragment implements MainActivity.Tab {
     private ImageView emptyIcon;
     private TextView emptyTitle, emptySub;
     private PosterAdapter adapter;
+    private final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private Runnable pending;
+    private int seq;
 
     @Nullable
     @Override
@@ -47,7 +50,7 @@ public class SearchFragment extends Fragment implements MainActivity.Tab {
         emptySub = v.findViewById(R.id.emptySub);
 
         RecyclerView rv = v.findViewById(R.id.results);
-        rv.setLayoutManager(new GridLayoutManager(requireContext(), Grid.COLUMNS));
+        rv.setLayoutManager(new GridLayoutManager(requireContext(), Grid.columns(requireContext())));
         adapter = new PosterAdapter(Grid.cardWidth(requireContext()), Grid.cardHeight(requireContext()), true, it ->
                 startActivity(new Intent(requireContext(), MovieDetailActivity.class)
                         .putExtra(MovieDetailActivity.EXTRA_VIDEO_ID, it.video.id)
@@ -80,6 +83,8 @@ public class SearchFragment extends Fragment implements MainActivity.Tab {
 
     private void run() {
         String q = input.getText().toString().trim();
+        if (pending != null) handler.removeCallbacks(pending);
+        final int my = ++seq;
         if (q.isEmpty()) {
             adapter.submit(new ArrayList<>());
             showEmpty(R.drawable.ic_film, getString(R.string.search_empty_title), getString(R.string.search_empty_sub));
@@ -87,10 +92,26 @@ public class SearchFragment extends Fragment implements MainActivity.Tab {
         }
         List<Video> hits = new ArrayList<>();
         for (Video v : Catalog.items()) if (v.matches(q)) hits.add(v);
-        adapter.submit(PosterAdapter.wrap(hits));
-        if (hits.isEmpty()) showEmpty(R.drawable.ic_search, getString(R.string.search_none, q),
-                Catalog.isLoaded() ? "Try another word." : "Server not reachable — check Settings.");
+        List<PosterAdapter.Item> local = PosterAdapter.wrap(hits);
+        for (PosterAdapter.Item it : local) it.subtitle = "Yours • " + it.subtitle;
+        adapter.submit(local);
+        if (hits.isEmpty()) showEmpty(R.drawable.ic_search, getString(R.string.search_none, q), "Searching TMDB…");
         else empty.setVisibility(View.GONE);
+
+        // TMDB results (info & trailers) follow your own titles
+        pending = () -> Tmdb.search(q, (online, error) -> {
+            if (getView() == null || my != seq) return;
+            List<PosterAdapter.Item> all = new ArrayList<>(local);
+            all.addAll(PosterAdapter.wrap(online));
+            adapter.submit(all);
+            if (all.isEmpty()) {
+                showEmpty(R.drawable.ic_search, getString(R.string.search_none, q),
+                        error != null ? error : Catalog.isLoaded() ? "Try another word." : "Server not reachable — check Settings.");
+            } else {
+                empty.setVisibility(View.GONE);
+            }
+        });
+        handler.postDelayed(pending, 400);
     }
 
     private void showEmpty(int icon, String title, String sub) {

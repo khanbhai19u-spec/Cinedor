@@ -58,12 +58,22 @@ public final class ApiConfig {
         return s;
     }
 
-    public static String get(String path) throws Exception {
+    public static String get(String path) throws Exception { return request("GET", path, null); }
+
+    public static String post(String path, String json) throws Exception { return request("POST", path, json); }
+
+    private static String request(String method, String path, String body) throws Exception {
         HttpURLConnection c = (HttpURLConnection) new URL(baseUrl + path).openConnection();
         c.setConnectTimeout(10000);
-        c.setReadTimeout(20000);
+        c.setReadTimeout(25000);
+        c.setRequestMethod(method);
         c.setRequestProperty("Accept", "application/json");
         if (!token.isEmpty()) c.setRequestProperty("X-App-Token", token);
+        if (body != null) {
+            c.setDoOutput(true);
+            c.setRequestProperty("Content-Type", "application/json");
+            try (java.io.OutputStream os = c.getOutputStream()) { os.write(body.getBytes(StandardCharsets.UTF_8)); }
+        }
         try {
             int code = c.getResponseCode();
             InputStream in = code >= 200 && code < 300 ? c.getInputStream() : c.getErrorStream();
@@ -75,7 +85,11 @@ public final class ApiConfig {
                 }
             }
             if (code == 401) throw new Exception("wrong token");
-            if (code < 200 || code >= 300) throw new Exception("server error " + code);
+            if (code < 200 || code >= 300) {
+                String msg = "server error " + code;
+                try { msg = new org.json.JSONObject(sb.toString()).optString("error", msg); } catch (Exception ignored) {}
+                throw new Exception(msg);
+            }
             return sb.toString();
         } finally {
             c.disconnect();

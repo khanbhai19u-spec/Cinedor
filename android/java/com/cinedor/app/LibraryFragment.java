@@ -63,7 +63,7 @@ public class LibraryFragment extends Fragment implements MainActivity.Tab {
         }
 
         RecyclerView rv = v.findViewById(R.id.list);
-        rv.setLayoutManager(new GridLayoutManager(requireContext(), Grid.COLUMNS));
+        rv.setLayoutManager(new GridLayoutManager(requireContext(), Grid.columns(requireContext())));
         adapter = new PosterAdapter(Grid.cardWidth(requireContext()), Grid.cardHeight(requireContext()), true,
                 new PosterAdapter.Listener() {
                     @Override public void onClick(PosterAdapter.Item it) { open(it); }

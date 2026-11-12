@@ -55,6 +55,10 @@ public class MainActivity extends AppCompatActivity {
             host.setPadding(b.left, b.top, b.right, 0);
             FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) nav.getLayoutParams();
             lp.bottomMargin = b.bottom + Ui.dp(this, 14);
+            lp.width = Grid.navWidth(this);
+            lp.gravity = android.view.Gravity.BOTTOM | android.view.Gravity.CENTER_HORIZONTAL;
+            lp.leftMargin = 0;
+            lp.rightMargin = 0;
             nav.setLayoutParams(lp);
             return insets;
         });
@@ -140,6 +144,7 @@ public class MainActivity extends AppCompatActivity {
         for (String t : TAGS) {
             Fragment f = getSupportFragmentManager().findFragmentByTag(t);
             if (f instanceof HomeFragment) ((HomeFragment) f).reload(true);
+            if (f instanceof SearchFragment) ((SearchFragment) f).onShown();
         }
     }
 }

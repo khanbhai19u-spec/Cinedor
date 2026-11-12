@@ -17,7 +17,7 @@
     <string name="select_download">Select quality to download</string>
     <string name="search_hint">Search movies, series…</string>
     <string name="search_empty_title">Search Cinedor</string>
-    <string name="search_empty_sub">Movies, series and more — from your own library.</string>
+    <string name="search_empty_sub">Your own videos — plus movie &amp; series info from TMDB.</string>
     <string name="search_none">Nothing matches “%1$s”</string>
     <string name="no_videos">No videos yet. Put folders inside the server\'s media folder, then tap refresh.</string>
     <string name="server_error">Can\'t reach your server: %1$s</string>

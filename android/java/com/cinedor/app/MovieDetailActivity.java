@@ -28,10 +28,10 @@ public class MovieDetailActivity extends AppCompatActivity {
 
     private Video video;
     private View progress;
-    private TextView tvTitle, tvMeta, tvGenre, tvDesc, tvEpisodes;
+    private TextView tvTitle, tvMeta, tvGenre, tvDesc, tvEpisodes, tvNote, tvTagline, tvCast;
     private ImageView poster;
     private ImageButton btnFavorite;
-    private MaterialButton btnWatch, btnDownload;
+    private MaterialButton btnWatch, btnDownload, btnTrailer;
     private LinearLayout episodes;
 
     @Override
@@ -53,6 +53,22 @@ public class MovieDetailActivity extends AppCompatActivity {
         btnWatch = findViewById(R.id.btnWatch);
         btnDownload = findViewById(R.id.btnDownload);
         episodes = findViewById(R.id.episodes);
+        btnTrailer = findViewById(R.id.btnTrailer);
+        tvNote = findViewById(R.id.tvNote);
+        tvTagline = findViewById(R.id.tvTagline);
+        tvCast = findViewById(R.id.tvCast);
+
+        // Artwork height adapts to the screen (shorter in landscape)
+        View posterBox = findViewById(R.id.posterBox);
+        posterBox.getLayoutParams().height = Math.round(getResources().getDisplayMetrics().heightPixels * (Grid.wide(this) ? 0.8f : 0.6f));
+        posterBox.setLayoutParams(posterBox.getLayoutParams());
+
+        btnTrailer.setOnClickListener(v -> {
+            if (video == null || video.trailer.isEmpty()) return;
+            android.net.Uri uri = android.net.Uri.parse("https://www.youtube.com/watch?v=" + video.trailer);
+            try { startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, uri)); }
+            catch (Exception e) { Toast.makeText(this, "No app can open the trailer", Toast.LENGTH_SHORT).show(); }
+        });
 
         View top = findViewById(R.id.topBar);
         ViewCompat.setOnApplyWindowInsetsListener(top, (v, insets) -> {
@@ -69,7 +85,15 @@ public class MovieDetailActivity extends AppCompatActivity {
             updateFavorite();
             Toast.makeText(this, on ? "Added to favorites" : "Removed from favorites", Toast.LENGTH_SHORT).show();
         });
-        btnWatch.setOnClickListener(v -> { if (video != null) Playback.playDefault(this, video); });
+        btnWatch.setOnClickListener(v -> {
+            if (video == null) return;
+            if (video.isTmdb()) {
+                Video own = Catalog.find(video.inLibrary);
+                if (own != null) Playback.playDefault(this, own);
+            } else {
+                Playback.playDefault(this, video);
+            }
+        });
         btnDownload.setOnClickListener(v -> {
             if (video == null) return;
             if (video.isSeries() && video.qualities.isEmpty()) {
@@ -89,6 +113,16 @@ public class MovieDetailActivity extends AppCompatActivity {
         }
         if (cached != null) show(cached);
         if (id == null) { if (cached == null) finish(); return; }
+
+        if (id.startsWith("tmdb:")) {
+            progress.setVisibility(View.VISIBLE);
+            Catalog.load(false, (items, e1) -> Tmdb.detail(id, (v, error) -> {
+                progress.setVisibility(View.GONE);
+                if (v != null) show(v);
+                else Toast.makeText(this, error != null ? error : "Not found", Toast.LENGTH_LONG).show();
+            }));
+            return;
+        }
 
         // Refresh from the server so new episodes / qualities show up
         progress.setVisibility(cached == null ? View.VISIBLE : View.GONE);
@@ -116,8 +150,30 @@ public class MovieDetailActivity extends AppCompatActivity {
         tvGenre.setVisibility(v.genre.isEmpty() ? View.GONE : View.VISIBLE);
         tvTitle.setText(v.title);
         String meta = v.meta();
-        if (v.isSeries()) meta += "  •  " + v.episodes.size() + " episodes";
+        if (v.isSeries() && !v.episodes.isEmpty()) meta += "  •  " + v.episodes.size() + " episodes";
+        if (v.runtime > 0) meta += "  •  " + (v.isSeries() ? v.runtime + " min/ep" : (v.runtime / 60) + "h " + (v.runtime % 60) + "m");
+        if (v.seasons > 0) meta += "  •  " + v.seasons + (v.seasons == 1 ? " season" : " seasons");
+        if (v.rating > 0) meta += "  •  " + v.ratingText();
         tvMeta.setText(meta);
+        btnTrailer.setVisibility(v.trailer.isEmpty() ? View.GONE : View.VISIBLE);
+        tvTagline.setText(v.tagline.isEmpty() ? "" : "“" + v.tagline + "”");
+        tvTagline.setVisibility(v.tagline.isEmpty() ? View.GONE : View.VISIBLE);
+        tvCast.setText(v.cast.isEmpty() ? "" : "Cast: " + v.cast);
+        tvCast.setVisibility(v.cast.isEmpty() ? View.GONE : View.VISIBLE);
+
+        if (v.isTmdb()) {
+            Video own = v.inLibrary.isEmpty() ? null : Catalog.find(v.inLibrary);
+            btnWatch.setVisibility(own != null ? View.VISIBLE : View.GONE);
+            btnWatch.setText("Play from your library");
+            btnDownload.setVisibility(View.GONE);
+            tvNote.setVisibility(own != null ? View.GONE : View.VISIBLE);
+            updateFavorite();
+            episodes.removeAllViews();
+            tvEpisodes.setVisibility(View.GONE);
+            return;
+        }
+        btnWatch.setVisibility(View.VISIBLE);
+        tvNote.setVisibility(View.GONE);
         tvDesc.setText(v.description);
         tvDesc.setVisibility(v.description.isEmpty() ? View.GONE : View.VISIBLE);
 
