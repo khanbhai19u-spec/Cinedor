@@ -44,7 +44,6 @@ public class MainActivity extends AppCompatActivity {
         ApiConfig.init(this);
         Tmdb.init(this);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-        getWindow().setBackgroundDrawable(Ui.appBackground(this));
         setContentView(R.layout.activity_main);
 
         View host = findViewById(R.id.fragmentHost);
@@ -135,9 +134,25 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        getWindow().setBackgroundDrawable(Ui.appBackground(this)); // follows Appearance setting
+    }
+
+    @Override
     protected void onSaveInstanceState(Bundle out) {
         out.putInt("tab", Math.max(current, 0));
         super.onSaveInstanceState(out);
+    }
+
+    /** Search tab with the keyboard open. */
+    public void openSearch() {
+        select(1);
+        Fragment f = getSupportFragmentManager().findFragmentByTag(TAGS[1]);
+        if (f instanceof SearchFragment) {
+            View v = f.getView();
+            if (v != null) v.post(((SearchFragment) f)::focusInput);
+        }
     }
 
     /** Opens the Library tab on Favorites (0), History (1) or Downloads (2). */

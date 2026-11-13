@@ -38,9 +38,10 @@ public final class VideoDownloader {
                     .setDescription("Cinedor • downloading")
                     .setMimeType("video/mp4")
                     .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                    .setAllowedOverMetered(true)
+                    .setAllowedOverMetered(!Prefs.wifiOnly(ctx))
                     .setAllowedOverRoaming(false)
-                    .setDestinationInExternalPublicDir(Environment.DIRECTORY_MOVIES, "Cinedor/" + fileName);
+                    .setDestinationInExternalPublicDir("movies".equals(Prefs.downloadFolder(ctx))
+                            ? Environment.DIRECTORY_MOVIES : Environment.DIRECTORY_DOWNLOADS, "Cinedor/" + fileName);
 
             if (ApiConfig.needsToken(url)) req.addRequestHeader("X-App-Token", ApiConfig.token());
 

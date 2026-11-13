@@ -13,8 +13,8 @@
 
     <ImageView
         android:id="@+id/emptyIcon"
-        android:layout_width="72dp"
-        android:layout_height="72dp"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
         android:importantForAccessibility="no"
         app:tint="#C9CAD1" />
 

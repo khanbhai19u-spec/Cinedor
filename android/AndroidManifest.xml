@@ -41,6 +41,8 @@
         <activity
             android:name=".PlayerActivity"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:resizeableActivity="true"
+            android:supportsPictureInPicture="true"
             android:exported="false"
             android:screenOrientation="sensorLandscape"
             android:theme="@style/Theme.Cinedor.Player" />

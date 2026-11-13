@@ -87,6 +87,71 @@ public class PlayerActivity extends AppCompatActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         hideSystemBars();
         if (position > 0) Toast.makeText(this, "Resuming from " + Ui.time(position), Toast.LENGTH_SHORT).show();
+        setupGestures();
+    }
+
+    // ---------- gestures: double-tap skip, hold for 2x ----------
+    private android.view.GestureDetector gestures;
+    private boolean speeding;
+
+    private void setupGestures() {
+        gestures = new android.view.GestureDetector(this, new android.view.GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onDoubleTap(@NonNull android.view.MotionEvent e) {
+                if (player == null) return false;
+                int skip = Prefs.skipSeconds(PlayerActivity.this) * 1000;
+                boolean forward = e.getX() > playerView.getWidth() / 2f;
+                long target = player.getCurrentPosition() + (forward ? skip : -skip);
+                long dur = player.getDuration();
+                if (dur > 0) target = Math.min(target, dur);
+                player.seekTo(Math.max(0, target));
+                Toast.makeText(PlayerActivity.this, (forward ? "+" : "−") + Prefs.skipSeconds(PlayerActivity.this) + " s", Toast.LENGTH_SHORT).show();
+                return true;
+            }
+
+            @Override
+            public void onLongPress(@NonNull android.view.MotionEvent e) {
+                if (player == null || !Prefs.holdToSpeed(PlayerActivity.this) || !player.isPlaying()) return;
+                speeding = true;
+                player.setPlaybackSpeed(2f);
+                Toast.makeText(PlayerActivity.this, "2× speed", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
+        if (gestures != null && !isInPip()) gestures.onTouchEvent(ev);
+        int a = ev.getActionMasked();
+        if (speeding && (a == android.view.MotionEvent.ACTION_UP || a == android.view.MotionEvent.ACTION_CANCEL)) {
+            speeding = false;
+            if (player != null) player.setPlaybackSpeed(1f);
+            return true;
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
+    // ---------- small window (picture-in-picture) ----------
+    private boolean isInPip() {
+        return android.os.Build.VERSION.SDK_INT >= 24 && isInPictureInPictureMode();
+    }
+
+    @Override
+    protected void onUserLeaveHint() {
+        super.onUserLeaveHint();
+        if (android.os.Build.VERSION.SDK_INT >= 26 && Prefs.pip(this) && player != null && player.isPlaying()) {
+            try {
+                enterPictureInPictureMode(new android.app.PictureInPictureParams.Builder()
+                        .setAspectRatio(new android.util.Rational(16, 9)).build());
+            } catch (Exception ignored) {}
+        }
+    }
+
+    @Override
+    public void onPictureInPictureModeChanged(boolean inPip, @NonNull android.content.res.Configuration newConfig) {
+        super.onPictureInPictureModeChanged(inPip, newConfig);
+        playerView.setUseController(!inPip);
+        findViewById(R.id.tvPlayerTitle).setVisibility(inPip ? android.view.View.GONE : android.view.View.VISIBLE);
     }
 
     private void initializePlayer() {
@@ -105,8 +170,8 @@ public class PlayerActivity extends AppCompatActivity {
 
         player = new ExoPlayer.Builder(this)
                 .setMediaSourceFactory(new DefaultMediaSourceFactory(dataSource))
-                .setSeekBackIncrementMs(10_000)
-                .setSeekForwardIncrementMs(10_000)
+                .setSeekBackIncrementMs(Prefs.skipSeconds(this) * 1000L)
+                .setSeekForwardIncrementMs(Prefs.skipSeconds(this) * 1000L)
                 .build();
         playerView.setPlayer(player);
 

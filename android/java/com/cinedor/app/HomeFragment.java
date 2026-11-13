@@ -68,6 +68,9 @@ public class HomeFragment extends Fragment implements MainActivity.Tab {
         swipe.setColorSchemeResources(R.color.accent);
         swipe.setProgressBackgroundColorSchemeColor(0xFF1E1F25);
         swipe.setOnRefreshListener(() -> reload(true));
+        v.findViewById(R.id.btnSearch).setOnClickListener(b -> {
+            if (getActivity() instanceof MainActivity) ((MainActivity) getActivity()).openSearch();
+        });
         v.findViewById(R.id.btnRefresh).setOnClickListener(b -> {
             b.animate().rotationBy(360f).setDuration(600).start();
             reload(true);

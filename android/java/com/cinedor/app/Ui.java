@@ -56,9 +56,17 @@ public final class Ui {
         return g;
     }
 
-    /** Dark background with soft blue (top-right) and plum (bottom-left) glows. */
+    /** Background for the chosen Appearance: Glass (soft glows), Matte (flat), Material (tinted). */
     public static Drawable appBackground(Context c) {
         float w = screenWidth(c);
+        String theme = Prefs.theme(c);
+        if (Prefs.THEME_MATTE.equals(theme)) return new ColorDrawable(0xFF0B0B0D);
+        if (Prefs.THEME_MATERIAL.equals(theme)) {
+            return new LayerDrawable(new Drawable[]{
+                    new ColorDrawable(0xFF15161C),
+                    glow(0x405E81F4, 0.5f, 0.0f, w * 1.1f),
+            });
+        }
         return new LayerDrawable(new Drawable[]{
                 new ColorDrawable(0xFF0F1014),
                 glow(0x552B4C9E, 0.75f, 0.02f, w * 0.85f),

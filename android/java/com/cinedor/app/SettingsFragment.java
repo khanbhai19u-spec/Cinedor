@@ -120,9 +120,11 @@ public class SettingsFragment extends Fragment implements MainActivity.Tab {
         } catch (Exception ignored) {}
         new AlertDialog.Builder(requireContext())
                 .setTitle("Cinedor " + version)
-                .setMessage("Browse movies and series, watch trailers and keep your own list.\n\n"
-                        + "Movie & TV information and images come from TMDB. This product uses the TMDB API "
-                        + "but is not endorsed or certified by TMDB.")
+                .setMessage("Your pocket cinema guide.\n\n"
+                        + "• Discover what's trending, K-Drama, C-Drama, Anime and more\n"
+                        + "• Watch trailers and see ratings & cast\n"
+                        + "• Keep your favourites in My List\n\n"
+                        + "Made with ❤ for movie lovers.\n\nData: TMDB")
                 .setPositiveButton("OK", null)
                 .show();
     }
