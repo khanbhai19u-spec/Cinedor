@@ -149,7 +149,7 @@ class PrinterService {
     final paper = paper80 ? esc.PaperSize.mm80 : esc.PaperSize.mm58;
     final paperDots = paper.width;
     final job = _ThermalJob(photos, copies, photoWmm, photoHmm, paperDots);
-    final rows = await Isolate.run(() => _thermalRows(job));
+    final rows = await _thermalInIsolate(job);
 
     final gen = esc.Generator(paper, profile);
     final bytes = <int>[...gen.reset()];
@@ -173,6 +173,9 @@ class PrinterService {
     }
   }
 }
+
+Future<List<img.Image>> _thermalInIsolate(_ThermalJob job) =>
+    Isolate.run(() => _thermalRows(job));
 
 class _ThermalJob {
   final List<img.Image> photos;

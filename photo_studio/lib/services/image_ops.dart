@@ -1,5 +1,6 @@
 // Pure-Dart image work. Everything here is safe to run inside Isolate.run().
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -355,3 +356,16 @@ img.Image renderPhoto(RenderJob j) {
 }
 
 int mmToPx(double mm, int dpi) => (mm / 25.4 * dpi).round();
+
+// ---------------------------------------------------------------------------
+// Isolate entry helpers. These are top-level on purpose: a closure passed to
+// Isolate.run() carries its whole enclosing scope, so creating it inside an
+// instance method or next to UI callbacks drags unsendable objects along
+// ("Invalid argument(s): Illegal argument in isolate message"). Here the
+// closures can only see their own parameters.
+
+Future<NormResult> normalizeInIsolate(String src, String dst, String segDst) =>
+    Isolate.run(() => normalizeImage(src, dst, segDst));
+
+Future<MaskResult> buildMaskInIsolate(MaskJob job) =>
+    Isolate.run(() => buildMask(job));

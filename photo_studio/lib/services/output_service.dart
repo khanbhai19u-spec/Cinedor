@@ -108,6 +108,23 @@ Future<Uint8List> _buildPdf(PdfJob j) async {
   return doc.save();
 }
 
+// Top-level isolate helpers (see note in image_ops.dart): closures here can
+// only capture their parameters, never UI callbacks or other unsendable state.
+Future<RenderedPhoto> _renderInIsolate(RenderJob job) => Isolate.run(() {
+      final im = renderPhoto(job);
+      return RenderedPhoto(im, img.encodeJpg(im, quality: 95));
+    });
+
+Future<Uint8List> _pdfInIsolate(PdfJob job) => Isolate.run(() => _buildPdf(job));
+
+Future<Uint8List> _sheetInIsolate(SheetJob job) =>
+    Isolate.run(() => _renderSheet(job));
+
+Future<Uint8List> _encodeInIsolate(img.Image im, ImageFormat f, int q) =>
+    Isolate.run(() => f == ImageFormat.png
+        ? img.encodePng(im, level: 6)
+        : img.encodeJpg(im, quality: q));
+
 class OutputService {
   static int _stamp = 0;
 
@@ -152,10 +169,7 @@ class OutputService {
       while (next < photos.length) {
         final i = next++;
         final job = jobFor(photos[i], size, dpi, bg);
-        out[i] = await Isolate.run(() {
-          final im = renderPhoto(job);
-          return RenderedPhoto(im, img.encodeJpg(im, quality: 95));
-        });
+        out[i] = await _renderInIsolate(job);
         done++;
         onProgress?.call(done, photos.length);
       }
@@ -168,7 +182,7 @@ class OutputService {
   static Future<Uint8List> buildPdf(
       List<PageLayout> pages, List<RenderedPhoto> photos, bool cutLines) {
     final job = PdfJob(pages, photos.map((e) => e.jpg).toList(), cutLines);
-    return Isolate.run(() => _buildPdf(job));
+    return _pdfInIsolate(job);
   }
 
   static Future<List<Uint8List>> buildSheetImages(
@@ -183,16 +197,14 @@ class OutputService {
     final result = <Uint8List>[];
     for (final p in pages) {
       final job = SheetJob(p, imgs, dpi, cutLines, format, jpgQuality);
-      result.add(await Isolate.run(() => _renderSheet(job)));
+      result.add(await _sheetInIsolate(job));
     }
     return result;
   }
 
   static Future<Uint8List> encode(
       img.Image im, ImageFormat f, int jpgQuality) {
-    return Isolate.run(() => f == ImageFormat.png
-        ? img.encodePng(im, level: 6)
-        : img.encodeJpg(im, quality: jpgQuality));
+    return _encodeInIsolate(im, f, jpgQuality);
   }
 
   /// Saves images into the phone gallery (album "Photo Studio").

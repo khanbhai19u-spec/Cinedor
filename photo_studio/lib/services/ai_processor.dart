@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:isolate';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -52,7 +51,7 @@ class AiProcessor {
     final src = p.sourcePath;
 
     // 1. Normalise (EXIF rotation, resize).
-    final nr = await Isolate.run(() => normalizeImage(src, norm, seg));
+    final nr = await normalizeInIsolate(src, norm, seg);
     p.normPath = norm;
     p.width = nr.width;
     p.height = nr.height;
@@ -106,7 +105,7 @@ class AiProcessor {
       faceTop: fb == null ? -1 : fb.top,
       faceW: fb == null ? -1 : fb.width,
     );
-    final r = await Isolate.run(() => buildMask(job));
+    final r = await buildMaskInIsolate(job);
     p.maskPath = r.hasMask ? maskPath : null;
     p.previewPng = r.previewCutout;
     p.previewOrig = r.previewOrig;
