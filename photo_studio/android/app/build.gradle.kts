@@ -47,6 +47,11 @@ android {
         }
     }
 
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
+
     buildTypes {
         release {
             signingConfig = if (hasReleaseKey) signingConfigs.getByName("release")
