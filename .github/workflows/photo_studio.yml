@@ -1,0 +1,97 @@
+name: Build Photo Studio (Flutter)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (যেমন 1.0.0) — প্রতিবার বাড়াবে"
+        required: true
+        default: "1.0.0"
+      notes:
+        description: "কী নতুন"
+        required: false
+        default: "Photo Studio update"
+  push:
+    paths:
+      - "photo_studio/**"
+      - ".github/workflows/photo_studio.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: photo_studio
+    env:
+      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      IN_VERSION: ${{ inputs.version || '0.0.1' }}
+      IN_NOTES: ${{ inputs.notes }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version
+        run: |
+          VER="${IN_VERSION#v}"
+          if ! [[ "$VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "::error::Version must look like 1.0.0"; exit 1; fi
+          IFS=. read -r MA MI PA <<< "$VER"
+          echo "VER=$VER" >> "$GITHUB_ENV"
+          echo "CODE=$(( 10#$MA * 10000 + 10#$MI * 100 + 10#$PA ))" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.50.0
+          cache: true
+
+      - name: Dependencies
+        run: flutter pub get
+
+      - name: Analyze & test
+        run: |
+          flutter analyze
+          flutter test
+
+      - name: Keystore
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "PS_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+            echo "PS_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          else
+            echo "::warning::KEYSTORE_BASE64 secret নেই — debug key দিয়ে সাইন হবে (পরের আপডেট ইনস্টলে সমস্যা হতে পারে)"
+          fi
+
+      - name: Build APK
+        run: flutter build apk --release --build-name="$VER" --build-number="$CODE"
+
+      - name: Rename
+        run: cp build/app/outputs/flutter-apk/app-release.apk "PhotoStudio-v$VER.apk"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PhotoStudio-v${{ env.VER }}
+          path: photo_studio/PhotoStudio-v${{ env.VER }}.apk
+
+      - name: Publish release
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: studio-v${{ env.VER }}
+          name: Photo Studio v${{ env.VER }}
+          body: ${{ env.IN_NOTES }}
+          files: photo_studio/PhotoStudio-v${{ env.VER }}.apk
+          make_latest: false
+
+      - name: Clean
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks" || true
