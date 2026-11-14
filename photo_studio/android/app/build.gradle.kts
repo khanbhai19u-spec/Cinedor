@@ -19,7 +19,7 @@ val hasReleaseKey = storePath != null && file(storePath).exists()
 
 android {
     namespace = "com.photostudio.photo_studio"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = maxOf(37, flutter.compileSdkVersion)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
