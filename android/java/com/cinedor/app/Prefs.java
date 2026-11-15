@@ -43,6 +43,9 @@ public final class Prefs {
     public static void setDownloadFolder(Context c, String f) { p(c).edit().putString("dlFolder", f).apply(); }
     public static String downloadFolderLabel(Context c) { return "movies".equals(downloadFolder(c)) ? "Movies/Cinedor" : "Download/Cinedor"; }
 
+    public static boolean guideHidden(Context c) { return p(c).getBoolean("guideHidden", false); }
+    public static void setGuideHidden(Context c, boolean hidden) { p(c).edit().putBoolean("guideHidden", hidden).apply(); }
+
     /** Puts every setting back to its default (history and lists are kept). */
     public static void reset(Context c) {
         List<String> history = searchHistory(c);

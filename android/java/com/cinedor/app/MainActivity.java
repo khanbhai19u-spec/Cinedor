@@ -84,6 +84,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         select(savedInstanceState != null ? savedInstanceState.getInt("tab", 0) : 0);
+        if (savedInstanceState == null) findViewById(R.id.root).post(() -> GuideDialog.showIfNeeded(this));
     }
 
     private Fragment create(int i) {

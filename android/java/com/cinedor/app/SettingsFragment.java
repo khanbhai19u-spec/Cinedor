@@ -51,6 +51,7 @@ public class SettingsFragment extends Fragment implements MainActivity.Tab {
         LinearLayout bottom = v.findViewById(R.id.menuBottom);
         String telegram = getString(R.string.telegram_url).trim();
         if (!telegram.isEmpty()) add(bottom, R.drawable.ic_send, "Join the Telegram Channel", "", () -> openUrl(telegram));
+        add(bottom, R.drawable.ic_info, "Help & Guide", "", () -> GuideDialog.show(requireActivity()));
         add(bottom, R.drawable.ic_tune, "App Settings", "", () ->
                 startActivity(new Intent(requireContext(), AppSettingsActivity.class)));
         add(bottom, R.drawable.ic_info, "About", "", this::about);
