@@ -6,6 +6,7 @@
     android:layout_height="match_parent">
 
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/detailScroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
@@ -17,7 +18,7 @@
             <FrameLayout
                 android:id="@+id/posterBox"
                 android:layout_width="match_parent"
-                android:layout_height="480dp">
+                android:layout_height="300dp">
 
                 <ImageView
                     android:id="@+id/poster"
@@ -35,185 +36,157 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="-150dp"
+                android:layout_marginTop="-56dp"
                 android:orientation="vertical"
-                android:paddingStart="22dp"
-                android:paddingEnd="22dp"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
                 android:paddingBottom="40dp">
-
-                <TextView
-                    android:id="@+id/tvGenre"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:textColor="#DCDDE3"
-                    android:textSize="15sp" />
 
                 <TextView
                     android:id="@+id/tvTitle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
                     android:gravity="center"
-                    android:textColor="@color/text"
-                    android:textSize="30sp"
+                    android:shadowColor="#AA000000"
+                    android:shadowRadius="10"
+                    android:textColor="#FFFFFF"
+                    android:textSize="32sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/tvMeta"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
+                    android:layout_marginTop="8dp"
                     android:gravity="center"
-                    android:letterSpacing="0.05"
-                    android:textColor="@color/text2"
-                    android:textSize="14sp" />
+                    android:textColor="#F4F4F6"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnWatch"
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="64dp"
-                    android:layout_marginTop="22dp"
-                    android:backgroundTint="#FFFFFF"
-                    android:text="@string/play"
-                    android:textAllCaps="false"
-                    android:textColor="#000000"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    app:cornerRadius="32dp"
-                    app:icon="@drawable/ic_play"
-                    app:iconGravity="textStart"
-                    app:iconPadding="12dp"
-                    app:iconSize="26dp"
-                    app:iconTint="#000000" />
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnDownload"
-                    android:layout_width="match_parent"
-                    android:layout_height="58dp"
-                    android:layout_marginTop="10dp"
-                    android:backgroundTint="@color/surface2"
-                    android:text="@string/download"
-                    android:textAllCaps="false"
-                    android:textColor="@color/text"
-                    android:textSize="16sp"
-                    app:cornerRadius="29dp"
-                    app:icon="@drawable/ic_download"
-                    app:iconGravity="textStart"
-                    app:iconPadding="10dp"
-                    app:iconTint="@color/text" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnWatch"
+                        android:layout_width="0dp"
+                        android:layout_height="56dp"
+                        android:layout_weight="1"
+                        android:backgroundTint="#FFFFFF"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:text="@string/play"
+                        android:textAllCaps="false"
+                        android:textColor="#000000"
+                        android:textSize="17sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="28dp"
+                        app:icon="@drawable/ic_play"
+                        app:iconGravity="textStart"
+                        app:iconPadding="10dp"
+                        app:iconSize="24dp"
+                        app:iconTint="#000000" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnTrailer"
-                    android:layout_width="match_parent"
-                    android:layout_height="58dp"
-                    android:layout_marginTop="10dp"
-                    android:backgroundTint="@color/surface2"
-                    android:text="Watch trailer"
-                    android:textAllCaps="false"
-                    android:textColor="@color/text"
-                    android:textSize="16sp"
-                    android:visibility="gone"
-                    app:cornerRadius="29dp"
-                    app:icon="@drawable/ic_play"
-                    app:iconGravity="textStart"
-                    app:iconPadding="10dp"
-                    app:iconTint="@color/text" />
+                    <ImageButton
+                        android:id="@+id/btnFavorite"
+                        android:layout_width="52dp"
+                        android:layout_height="52dp"
+                        android:layout_marginStart="12dp"
+                        android:background="@drawable/bg_circle_outline"
+                        android:contentDescription="@string/favorite"
+                        android:padding="14dp"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/ic_add"
+                        app:tint="#FFFFFF" />
+
+                    <ImageButton
+                        android:id="@+id/btnSecond"
+                        android:layout_width="52dp"
+                        android:layout_height="52dp"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/bg_circle_outline"
+                        android:contentDescription="@string/download"
+                        android:padding="14dp"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/ic_download"
+                        app:tint="#FFFFFF" />
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/tvNote"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:background="@drawable/bg_field"
+                    android:layout_marginTop="10dp"
                     android:gravity="center"
-                    android:padding="14dp"
-                    android:text="Not in your library. Add the file to your server's media folder to play it here."
-                    android:textColor="@color/text2"
-                    android:textSize="13sp"
-                    android:visibility="gone" />
-
-                <TextView
-                    android:id="@+id/tvTagline"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="18dp"
-                    android:gravity="center"
-                    android:textColor="@color/text2"
-                    android:textSize="15sp"
-                    android:textStyle="italic"
+                    android:textColor="@color/text3"
+                    android:textSize="12sp"
                     android:visibility="gone" />
 
                 <TextView
                     android:id="@+id/tvDesc"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="22dp"
-                    android:lineSpacingMultiplier="1.35"
-                    android:textColor="@color/text2"
+                    android:layout_marginTop="16dp"
+                    android:lineSpacingMultiplier="1.3"
+                    android:textColor="#E6E6EA"
                     android:textSize="15sp" />
 
                 <TextView
-                    android:id="@+id/tvEpisodes"
+                    android:id="@+id/tvGenres"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="26dp"
-                    android:text="@string/episodes"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center"
+                    android:textColor="@color/text2"
+                    android:textSize="14sp" />
+
+                <LinearLayout
+                    android:id="@+id/tabs"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    android:gravity="center"
+                    android:orientation="horizontal" />
+
+                <TextView
+                    android:id="@+id/seasonPicker"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="14dp"
+                    android:background="@drawable/bg_badge"
+                    android:gravity="center_vertical"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
                     android:textColor="@color/text"
-                    android:textSize="19sp"
+                    android:textSize="14sp"
                     android:textStyle="bold"
                     android:visibility="gone" />
 
                 <LinearLayout
-                    android:id="@+id/episodes"
+                    android:id="@+id/tabContent"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
                     android:orientation="vertical" />
-
-                <TextView
-                    android:id="@+id/tvCast"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="22dp"
-                    android:lineSpacingMultiplier="1.3"
-                    android:textColor="@color/text2"
-                    android:textSize="14sp"
-                    android:visibility="gone" />
             </LinearLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <LinearLayout
-        android:id="@+id/topBar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp">
-
-        <ImageButton
-            android:id="@+id/btnBack"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="@drawable/bg_circle_dark"
-            android:contentDescription="@string/back"
-            android:src="@drawable/ic_back"
-            app:tint="@color/text" />
-
-        <View
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1" />
-
-        <ImageButton
-            android:id="@+id/btnFavorite"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="@drawable/bg_circle_dark"
-            android:contentDescription="@string/favorite"
-            android:src="@drawable/ic_bookmark_border"
-            app:tint="@color/text" />
-    </LinearLayout>
+    <ImageButton
+        android:id="@+id/btnBack"
+        android:layout_width="46dp"
+        android:layout_height="46dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="16dp"
+        android:background="@drawable/bg_circle_dark"
+        android:contentDescription="@string/back"
+        android:padding="12dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_close"
+        app:tint="#FFFFFF" />
 
     <ProgressBar
         android:id="@+id/progress"

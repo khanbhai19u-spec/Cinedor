@@ -55,7 +55,7 @@ public class Video {
     public final long added;
     /** TMDB extras (0 / "" when unknown). */
     public final double rating;
-    public final long tmdbId, runtime, seasons;
+    public final long tmdbId, runtime, seasons, episodeCount;
     public final String mediaType, trailer, inLibrary, tagline, cast;
     public final List<Quality> qualities;
     public final List<Episode> episodes = new ArrayList<>();
@@ -76,6 +76,7 @@ public class Video {
         tmdbId = o.optLong("tmdbId", 0);
         runtime = o.optLong("runtime", 0);
         seasons = o.optLong("seasons", 0);
+        episodeCount = o.optLong("episodeCount", 0);
         mediaType = o.optString("mediaType", "");
         trailer = o.optString("trailer", "");
         inLibrary = o.isNull("inLibrary") ? "" : o.optString("inLibrary", "");
@@ -140,7 +141,7 @@ public class Video {
                     .put("genre", genre).put("description", description).put("poster", poster)
                     .put("backdrop", backdrop).put("featured", featured).put("added", added)
                     .put("qualities", toArray(qualities)).put("episodes", eps)
-                    .put("rating", rating).put("tmdbId", tmdbId).put("runtime", runtime).put("seasons", seasons)
+                    .put("rating", rating).put("tmdbId", tmdbId).put("runtime", runtime).put("seasons", seasons).put("episodeCount", episodeCount)
                     .put("mediaType", mediaType).put("trailer", trailer).put("inLibrary", inLibrary)
                     .put("tagline", tagline).put("castText", cast);
         } catch (JSONException e) {

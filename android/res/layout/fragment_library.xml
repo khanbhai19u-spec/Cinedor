@@ -5,18 +5,20 @@
     android:orientation="vertical">
 
     <TextView
-        style="@style/Cinedor.Title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingStart="24dp"
-        android:paddingTop="20dp"
-        android:paddingEnd="24dp"
-        android:text="@string/library" />
+        android:paddingStart="22dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="22dp"
+        android:text="@string/library"
+        android:textColor="@color/text"
+        android:textSize="24sp"
+        android:textStyle="bold" />
 
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="10dp"
         android:clipToPadding="false"
         android:paddingStart="18dp"
         android:paddingEnd="18dp"

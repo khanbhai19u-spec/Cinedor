@@ -296,16 +296,47 @@ public final class Tmdb {
         });
     }
 
-    /** id looks like "tmdb:movie:603". Adds trailer, cast, runtime and tagline. */
-    public static void detail(String id, Callback<Video> cb) {
+    /** Everything the title page shows. */
+    public static class Detail {
+        public Video video;
+        public String certification = "";
+        public final List<Video> recommendations = new ArrayList<>();
+        public final List<Person> cast = new ArrayList<>();
+        public final List<Integer> seasonNumbers = new ArrayList<>();
+    }
+
+    public static class Person {
+        public final String name, role, photo;
+        Person(String name, String role, String photo) { this.name = name; this.role = role; this.photo = photo; }
+    }
+
+    public static class Episode {
+        public final int number;
+        public final String name, overview, still;
+        public final long runtime;
+        Episode(JSONObject e) {
+            number = e.optInt("episode_number");
+            name = e.optString("name");
+            overview = e.optString("overview", "");
+            still = img(e.optString("still_path", ""), "w300");
+            runtime = e.optLong("runtime", 0);
+        }
+    }
+
+    /** id looks like "tmdb:movie:603". Adds trailer, cast, age rating, seasons and recommendations. */
+    public static void detail(String id, Callback<Detail> cb) {
         String[] parts = id.split(":");
         if (parts.length != 3) { cb.done(null, "bad id"); return; }
         IO.execute(() -> {
             try {
+                genreMap();
+                String type = parts[1];
                 String lang2 = language().substring(0, 2).toLowerCase(Locale.US);
-                JSONObject r = get("/" + parts[1] + "/" + parts[2],
-                        "append_to_response=videos,credits&include_video_language=" + lang2 + ",en,null");
-                Video base = map(r, parts[1]);
+                String extra = "movie".equals(type) ? "release_dates" : "content_ratings";
+                JSONObject r = get("/" + type + "/" + parts[2],
+                        "append_to_response=videos,credits,recommendations,similar," + extra
+                                + "&include_video_language=" + lang2 + ",en,null");
+                Video base = map(r, type);
                 if (base == null) throw new Exception("Not found");
                 JSONObject o = base.toJson();
                 JSONArray vids = r.optJSONObject("videos") != null ? r.optJSONObject("videos").optJSONArray("results") : null;
@@ -315,16 +346,81 @@ public final class Tmdb {
                 if (runtime == 0 && ert != null && ert.length() > 0) runtime = ert.optLong(0);
                 o.put("runtime", runtime);
                 o.put("seasons", r.optLong("number_of_seasons", 0));
+                o.put("episodeCount", r.optLong("number_of_episodes", 0));
                 o.put("tagline", r.optString("tagline", ""));
-                JSONArray cast = r.optJSONObject("credits") != null ? r.optJSONObject("credits").optJSONArray("cast") : null;
-                o.put("cast", cast != null ? cast : new JSONArray());
                 o.remove("castText");
-                Video v = new Video(o);
-                MAIN.post(() -> cb.done(v, null));
+
+                Detail d = new Detail();
+                d.video = new Video(o);
+                d.certification = certification(r, type);
+                JSONObject credits = r.optJSONObject("credits");
+                JSONArray cast = credits != null ? credits.optJSONArray("cast") : null;
+                if (cast != null) for (int i = 0; i < cast.length() && i < 20; i++) {
+                    JSONObject c = cast.optJSONObject(i);
+                    if (c != null) d.cast.add(new Person(c.optString("name"), c.optString("character"), img(c.optString("profile_path", ""), "w185")));
+                }
+                JSONObject recs = r.optJSONObject("recommendations");
+                if (recs != null) d.recommendations.addAll(list(recs, type));
+                if (d.recommendations.isEmpty() && r.optJSONObject("similar") != null) d.recommendations.addAll(list(r.optJSONObject("similar"), type));
+                JSONArray seasons = r.optJSONArray("seasons");
+                if (seasons != null) for (int i = 0; i < seasons.length(); i++) {
+                    JSONObject sn = seasons.optJSONObject(i);
+                    if (sn != null && sn.optInt("season_number") > 0 && sn.optInt("episode_count") > 0) d.seasonNumbers.add(sn.optInt("season_number"));
+                }
+                MAIN.post(() -> cb.done(d, null));
             } catch (Exception e) {
                 MAIN.post(() -> cb.done(null, e.getMessage()));
             }
         });
+    }
+
+    /** Episodes of one season of a TMDB series. */
+    public static void season(long tvId, int number, Callback<List<Episode>> cb) {
+        IO.execute(() -> {
+            try {
+                JSONArray a = get("/tv/" + tvId + "/season/" + number, "").optJSONArray("episodes");
+                List<Episode> out = new ArrayList<>();
+                if (a != null) for (int i = 0; i < a.length(); i++) {
+                    JSONObject e = a.optJSONObject(i);
+                    if (e != null) out.add(new Episode(e));
+                }
+                MAIN.post(() -> cb.done(out, null));
+            } catch (Exception e) {
+                MAIN.post(() -> cb.done(Collections.emptyList(), e.getMessage()));
+            }
+        });
+    }
+
+    /** Age rating like "PG-13" or "TV-14" (US first, then any country). */
+    private static String certification(JSONObject r, String type) {
+        String any = "";
+        if ("movie".equals(type)) {
+            JSONObject rd = r.optJSONObject("release_dates");
+            JSONArray res = rd != null ? rd.optJSONArray("results") : null;
+            if (res != null) for (int i = 0; i < res.length(); i++) {
+                JSONObject c = res.optJSONObject(i);
+                JSONArray dates = c != null ? c.optJSONArray("release_dates") : null;
+                if (dates == null) continue;
+                for (int j = 0; j < dates.length(); j++) {
+                    String cert = dates.optJSONObject(j) != null ? dates.optJSONObject(j).optString("certification", "") : "";
+                    if (cert.isEmpty()) continue;
+                    if ("US".equals(c.optString("iso_3166_1"))) return cert;
+                    if (any.isEmpty()) any = cert;
+                }
+            }
+        } else {
+            JSONObject cr = r.optJSONObject("content_ratings");
+            JSONArray res = cr != null ? cr.optJSONArray("results") : null;
+            if (res != null) for (int i = 0; i < res.length(); i++) {
+                JSONObject c = res.optJSONObject(i);
+                if (c == null) continue;
+                String cert = c.optString("rating", "");
+                if (cert.isEmpty()) continue;
+                if ("US".equals(c.optString("iso_3166_1"))) return cert;
+                if (any.isEmpty()) any = cert;
+            }
+        }
+        return any;
     }
 
     /** Quick check of a key before saving it. */
