@@ -1,0 +1,9 @@
+{
+  "name": "Cinedor",
+  "short_name": "Cinedor",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0F1014",
+  "theme_color": "#0F1014",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

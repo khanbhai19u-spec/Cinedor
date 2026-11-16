@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="22dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="22dp"
+        android:text="@string/library"
+        android:textColor="@color/text"
+        android:textSize="24sp"
+        android:textStyle="bold" />
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:clipToPadding="false"
+        android:paddingStart="18dp"
+        android:paddingEnd="18dp"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/tabs"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+    </HorizontalScrollView>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingStart="12dp"
+            android:paddingTop="16dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="96dp" />
+
+        <include layout="@layout/view_empty" />
+    </FrameLayout>
+</LinearLayout>

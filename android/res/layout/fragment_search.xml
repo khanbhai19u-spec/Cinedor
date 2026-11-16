@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="22dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="22dp"
+        android:text="@string/search"
+        android:textColor="@color/text"
+        android:textSize="24sp"
+        android:textStyle="bold" />
+
+    <EditText
+        android:id="@+id/searchInput"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_marginStart="18dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="18dp"
+        android:background="@drawable/bg_search"
+        android:drawableStart="@drawable/ic_search"
+        android:drawablePadding="14dp"
+        android:drawableTint="@color/text"
+        android:hint="@string/search_hint"
+        android:imeOptions="actionSearch"
+        android:importantForAutofill="no"
+        android:inputType="text"
+        android:maxLines="1"
+        android:paddingStart="18dp"
+        android:paddingEnd="18dp"
+        android:textColor="@color/text"
+        android:textColorHint="@color/text2"
+        android:textSize="15sp" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/results"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingStart="12dp"
+            android:paddingTop="16dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="96dp" />
+
+        <include layout="@layout/view_empty" />
+
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/historyScroll"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="96dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/historyBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingTop="14dp" />
+        </androidx.core.widget.NestedScrollView>
+    </FrameLayout>
+</LinearLayout>

@@ -1,0 +1,10 @@
+.gradle/
+build/
+android/build/
+local.properties
+*.jks
+*.apk
+backend/node_modules/
+backend/config.json
+backend/.cache/
+backend/data/
