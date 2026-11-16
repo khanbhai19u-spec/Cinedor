@@ -285,11 +285,15 @@
       <section class="card-box"><h3>Server token</h3><p>Only needed if the server was started with APP_TOKEN.</p>
         <input class="field" id="tok" type="password" placeholder="Token (leave empty if not set)" value="${esc(token())}" autocomplete="off">
         <button class="btn" id="saveTok">Save & test</button><div class="status" id="tokStatus"></div></section>
+      <section class="card-box"><h3>Admin</h3><p>TMDB key, your library, feedback and announcements are managed in Cinedor Console.</p>
+        <a class="btn" href="/console/" style="text-decoration:none">Open Cinedor Console</a><div class="status" id="tmdbStatus"></div></section>
       <section class="card-box"><h3>Library</h3>
         <button class="btn flat" id="clrH">Clear watch history</button>
         <button class="btn flat" id="clrF" style="margin-top:8px">Clear favorites</button></section>
       <p class="about">Cinedor web • plays videos from your own server.<br>Tip: use “Add to Home screen” in your browser to open it like an app.</p>`;
 
+    const st = $('#tmdbStatus');
+    api('/api/config').then((c) => { st.textContent = c.tmdbEnabled ? `✓ TMDB on (key ${c.tmdbKeyMasked})` : 'TMDB is off'; }).catch((e) => { st.textContent = e.message; });
 
     $('#saveTok').onclick = async () => {
       ls.set('cinedor.token', $('#tok').value.trim());
