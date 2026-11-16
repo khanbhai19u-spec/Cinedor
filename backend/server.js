@@ -306,8 +306,11 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`Media folder: ${MEDIA}`);
   console.log(TOKEN ? 'Token: ON' : 'Token: off (set APP_TOKEN to lock it)');
   console.log('Console: http://localhost:' + PORT + '/console');
-  console.log(tmdb.enabled() ? 'TMDB: ON' : 'TMDB: off (add your key in the web app → Settings, or TMDB_API_KEY=...)');
-  for (const list of Object.values(require('os').networkInterfaces())) {
-    for (const a of list || []) if (a.family === 'IPv4' && !a.internal) console.log(`Open in your phone: http://${a.address}:${PORT}`);
-  }
+  console.log(tmdb.enabled() ? 'TMDB: ON' : 'TMDB: off (add your key in Cinedor Console → Settings, or TMDB_API_KEY=...)');
+  try {
+    // some Android/Termux versions refuse to list network interfaces — never let that stop the server
+    for (const list of Object.values(require('os').networkInterfaces())) {
+      for (const a of list || []) if (a.family === 'IPv4' && !a.internal) console.log(`Open in your phone: http://${a.address}:${PORT}`);
+    }
+  } catch { console.log('(Could not read the Wi-Fi address — find it in your phone Wi-Fi settings.)'); }
 });
