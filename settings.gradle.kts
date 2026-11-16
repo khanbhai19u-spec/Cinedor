@@ -8,3 +8,5 @@ dependencyResolutionManagement {
 rootProject.name = "Cinedor"
 include(":app")
 project(":app").projectDir = file("android")
+include(":admin")
+project(":admin").projectDir = file("admin")

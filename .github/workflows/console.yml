@@ -1,0 +1,89 @@
+name: Build Cinedor Console (Admin app)
+
+on:
+  push:
+    paths:
+      - "admin/**"
+      - "*.gradle.kts"
+      - "gradle.properties"
+      - ".github/workflows/console.yml"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (যেমন 1.0.0) — খালি রাখলে নিজে থেকে নম্বর বসবে"
+        required: false
+        default: ""
+      notes:
+        description: "কী নতুন"
+        required: false
+        default: "Cinedor Console update"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      IN_VERSION: ${{ inputs.version }}
+      RUN_NO: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version
+        run: |
+          VER="${IN_VERSION#v}"
+          [ -z "$VER" ] && VER="1.0.$RUN_NO"
+          if ! [[ "$VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "::error::Version must look like 1.0.0"; exit 1; fi
+          IFS=. read -r MA MI PA <<< "$VER"
+          echo "VER=$VER" >> "$GITHUB_ENV"
+          echo "CODE=$(( 10#$MA * 1000000 + 10#$MI * 10000 + 10#$PA ))" >> "$GITHUB_ENV"
+
+      - name: Keystore
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > admin/release.jks
+          else
+            echo "::warning::KEYSTORE_BASE64 secret নেই — debug key দিয়ে সাইন হবে"
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Build APK
+        run: gradle :admin:assembleRelease -PvName="$VER" -PvCode="$CODE" --no-daemon --stacktrace
+
+      - name: Rename
+        run: cp admin/build/outputs/apk/release/admin-release.apk "CinedorConsole-v$VER.apk"
+
+      - name: Upload APK (download from the run page)
+        uses: actions/upload-artifact@v4
+        with:
+          name: CinedorConsole-v${{ env.VER }}
+          path: CinedorConsole-v${{ env.VER }}.apk
+
+      - name: Publish release
+        # Own release (tag console-v…); never marked "latest", so that stays the viewer app
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: console-v${{ env.VER }}
+          name: Cinedor Console v${{ env.VER }} (admin app)
+          body: |
+            ${{ inputs.notes || github.event.head_commit.message || 'Cinedor Console update' }}
+
+            এটা অ্যাডমিন অ্যাপ — নিজের Cinedor সার্ভার চালান যিনি, শুধু তার জন্য।
+          files: CinedorConsole-v${{ env.VER }}.apk
+          make_latest: false
+
+      - name: Clean
+        if: always()
+        run: rm -f admin/release.jks || true

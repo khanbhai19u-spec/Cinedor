@@ -8,3 +8,4 @@ backend/node_modules/
 backend/config.json
 backend/.cache/
 backend/data/
+admin/build/

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Console" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">#F59E0B</item>
+        <item name="colorOnPrimary">#1A1200</item>
+        <item name="android:colorBackground">#0F1014</item>
+        <item name="android:windowBackground">#0F1014</item>
+        <item name="android:statusBarColor">#0F1014</item>
+        <item name="android:navigationBarColor">#0F1014</item>
+    </style>
+</resources>

@@ -325,7 +325,11 @@
         h('div', { class: 'file' }, h('span', { class: 'nm' }, 'Media folder'), h('small', {}, s.mediaDir)),
         h('div', { class: 'file' }, h('span', { class: 'nm' }, 'Port'), h('small', {}, s.port)),
         h('div', { class: 'file' }, h('span', { class: 'nm' }, 'App token (APP_TOKEN)'), h('small', {}, s.appToken ? 'on' : 'off — anyone on your network can read the library')),
-        h('div', { class: 'file' }, h('span', { class: 'nm' }, 'Public address'), h('small', {}, s.publicBase || 'taken from each request'))));
+        h('div', { class: 'file' }, h('span', { class: 'nm' }, 'Public address'), h('small', {}, s.publicBase || 'taken from each request'))),
+      window.CinedorAdmin ? h('div', { class: 'card' }, h('h2', {}, 'This app'),
+        h('div', { class: 'file' }, h('span', { class: 'nm' }, 'Cinedor Console app'), h('small', {}, window.CinedorAdmin.version())),
+        h('div', { class: 'file' }, h('span', { class: 'nm' }, 'Connected to'), h('small', {}, window.CinedorAdmin.server())),
+        h('div', { class: 'row' }, h('button', { class: 'btn flat', onclick: () => window.CinedorAdmin.changeServer() }, 'Change server'))) : null);
   }
 
   // ---------- render ----------
