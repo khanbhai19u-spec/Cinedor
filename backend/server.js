@@ -14,6 +14,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const tmdb = require('./tmdb');
+const createConsole = require('./console');
 
 const PORT = Number(process.env.PORT) || 3000;
 const MEDIA = path.resolve(process.env.MEDIA_DIR || path.join(__dirname, 'media'));
@@ -163,6 +164,7 @@ function send(res, code, body, type = 'application/json; charset=utf-8') {
 }
 
 function serveFile(req, res, rel) {
+  if (rel.split(/[\\/]/).some((seg) => seg.startsWith('.'))) return send(res, 404, { error: 'not found' }); // hides .trash
   const file = path.resolve(MEDIA, rel);
   if (file !== MEDIA && !file.startsWith(MEDIA + path.sep)) return send(res, 403, { error: 'forbidden' });
   let st;
@@ -213,10 +215,19 @@ function authorized(req, url) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
+const consoleApp = createConsole({
+  MEDIA, PORT, tmdb, send, readBody, serveFile,
+  catalog: () => catalog(),
+  invalidate: () => { cache.at = 0; },
+});
+
 async function handle(req, res) {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
   const isApi = p === '/api' || p.startsWith('/api/') || p.startsWith('/media/');
+
+  // Cinedor Console (admin panel) has its own password + session
+  if (p === '/console' || p.startsWith('/console/')) return consoleApp.handle(req, res, url);
 
   // The web app's own files are public; the API and your media need the token.
   if (!isApi) {
@@ -238,19 +249,16 @@ async function handle(req, res) {
   }
 
   if (p === '/api/config') {
-    if (req.method === 'POST') {
-      const body = await readBody(req);
-      const patch = {};
-      if (typeof body.tmdbKey === 'string') {
-        const k = body.tmdbKey.trim();
-        if (k) await tmdb.testKey(k);
-        patch.tmdbKey = k;
-      }
-      if (typeof body.language === 'string' && /^[a-z]{2}(-[A-Z]{2})?$/.test(body.language)) patch.language = body.language;
-      tmdb.saveConfig(patch);
-      cache.at = 0; // re-scan so new metadata is fetched
-    }
+    // Changing settings now lives in Cinedor Console (password protected)
+    if (req.method === 'POST') return send(res, 403, { error: 'Use Cinedor Console (/console) to change settings' });
     return send(res, 200, tmdb.publicConfig());
+  }
+
+  // Small public endpoints for the app (still behind APP_TOKEN when you set one)
+  if (p === '/api/announcement') return send(res, 200, consoleApp.publicAnnouncement());
+  if (p === '/api/feedback' && req.method === 'POST') {
+    const [code, out] = consoleApp.addFeedback(req, await readBody(req));
+    return send(res, code, out);
   }
 
   if (p === '/api/discover') {
@@ -292,10 +300,12 @@ const server = http.createServer((req, res) => {
   });
 });
 
+server.requestTimeout = 0; // big uploads from the console can take longer than 5 minutes
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Cinedor server on port ${PORT}`);
   console.log(`Media folder: ${MEDIA}`);
   console.log(TOKEN ? 'Token: ON' : 'Token: off (set APP_TOKEN to lock it)');
+  console.log('Console: http://localhost:' + PORT + '/console');
   console.log(tmdb.enabled() ? 'TMDB: ON' : 'TMDB: off (add your key in the web app → Settings, or TMDB_API_KEY=...)');
   for (const list of Object.values(require('os').networkInterfaces())) {
     for (const a of list || []) if (a.family === 'IPv4' && !a.internal) console.log(`Open in your phone: http://${a.address}:${PORT}`);

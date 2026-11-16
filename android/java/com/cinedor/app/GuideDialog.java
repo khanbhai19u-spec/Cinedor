@@ -48,8 +48,12 @@ public final class GuideDialog {
         d.show();
     }
 
-    /** Opens your Telegram link when set, otherwise lets the user pick any app (mail, chat…) to send feedback. */
+    /**
+     * With a personal server: a small form that sends the message to Cinedor Console.
+     * Without one: your Telegram link if set, otherwise the system share sheet.
+     */
     static void feedback(Activity a) {
+        if (ApiConfig.hasServer()) { form(a); return; }
         String tg = a.getString(R.string.telegram_url).trim();
         Intent i;
         if (!tg.isEmpty()) {
@@ -62,6 +66,48 @@ public final class GuideDialog {
         }
         try { a.startActivity(i); }
         catch (Exception e) { Toast.makeText(a, "No app found to send feedback", Toast.LENGTH_SHORT).show(); }
+    }
+
+    private static void form(Activity a) {
+        android.widget.LinearLayout box = new android.widget.LinearLayout(a);
+        box.setOrientation(android.widget.LinearLayout.VERTICAL);
+        int p = Ui.dp(a, 20);
+        box.setPadding(p, Ui.dp(a, 8), p, 0);
+        android.widget.EditText msg = new android.widget.EditText(a);
+        msg.setHint("Describe the problem or your idea (add the title & year for movies/series)");
+        msg.setMinLines(4);
+        msg.setGravity(android.view.Gravity.TOP);
+        msg.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
+                | android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        box.addView(msg);
+        android.widget.EditText contact = new android.widget.EditText(a);
+        contact.setHint("Your name or contact (optional)");
+        contact.setSingleLine();
+        box.addView(contact);
+
+        new androidx.appcompat.app.AlertDialog.Builder(a)
+                .setTitle("Send feedback")
+                .setView(box)
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Send", (d, w) -> {
+                    String text = msg.getText().toString().trim();
+                    if (text.length() < 5) { Toast.makeText(a, "Please write a little more", Toast.LENGTH_SHORT).show(); return; }
+                    String who = contact.getText().toString().trim();
+                    String ver = version(a);
+                    new Thread(() -> {
+                        String result;
+                        try {
+                            ApiConfig.post("/api/feedback", new org.json.JSONObject()
+                                    .put("text", text).put("contact", who).put("app", ver).toString());
+                            result = "Thanks! Feedback sent";
+                        } catch (Exception e) {
+                            result = "Couldn't send: " + e.getMessage();
+                        }
+                        final String shown = result;
+                        a.runOnUiThread(() -> Toast.makeText(a, shown, Toast.LENGTH_LONG).show());
+                    }).start();
+                })
+                .show();
     }
 
     private static String version(Activity a) {

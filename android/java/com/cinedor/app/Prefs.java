@@ -46,6 +46,9 @@ public final class Prefs {
     public static boolean guideHidden(Context c) { return p(c).getBoolean("guideHidden", false); }
     public static void setGuideHidden(Context c, boolean hidden) { p(c).edit().putBoolean("guideHidden", hidden).apply(); }
 
+    public static String seenAnnouncement(Context c) { return p(c).getString("seenAnnouncement", ""); }
+    public static void setSeenAnnouncement(Context c, String id) { p(c).edit().putString("seenAnnouncement", id).apply(); }
+
     /** Puts every setting back to its default (history and lists are kept). */
     public static void reset(Context c) {
         List<String> history = searchHistory(c);

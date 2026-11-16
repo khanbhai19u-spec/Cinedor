@@ -285,38 +285,21 @@
       <section class="card-box"><h3>Server token</h3><p>Only needed if the server was started with APP_TOKEN.</p>
         <input class="field" id="tok" type="password" placeholder="Token (leave empty if not set)" value="${esc(token())}" autocomplete="off">
         <button class="btn" id="saveTok">Save & test</button><div class="status" id="tokStatus"></div></section>
-      <section class="card-box"><h3>TMDB</h3><p>Adds posters, descriptions, ratings, trailers and trending lists. The key is stored on your server only.</p>
-        <input class="field" id="tmdbKey" type="password" placeholder="TMDB API key (v3) or read access token" autocomplete="off">
-        <select class="field" id="lang">
-          ${[['en-US', 'English'], ['bn-BD', 'বাংলা'], ['hi-IN', 'हिन्दी'], ['ko-KR', '한국어'], ['ar-SA', 'العربية'], ['es-ES', 'Español']].map(([c, n]) => `<option value="${c}">${n}</option>`).join('')}
-        </select>
-        <button class="btn" id="saveTmdb">Save TMDB settings</button><div class="status" id="tmdbStatus"></div></section>
+      <section class="card-box"><h3>Admin</h3><p>TMDB key, your library, feedback and announcements are managed in Cinedor Console.</p>
+        <a class="btn" href="/console/" style="text-decoration:none">Open Cinedor Console</a><div class="status" id="tmdbStatus"></div></section>
       <section class="card-box"><h3>Library</h3>
         <button class="btn flat" id="clrH">Clear watch history</button>
         <button class="btn flat" id="clrF" style="margin-top:8px">Clear favorites</button></section>
       <p class="about">Cinedor web • plays videos from your own server.<br>Tip: use “Add to Home screen” in your browser to open it like an app.</p>`;
 
     const st = $('#tmdbStatus');
-    const showCfg = (c) => {
-      state.config = c;
-      st.textContent = c.tmdbEnabled ? `✓ TMDB on (key ${c.tmdbKeyMasked}${c.tmdbFromEnv ? ', from TMDB_API_KEY' : ''})` : 'TMDB is off';
-      $('#lang').value = c.language || 'en-US';
-    };
-    api('/api/config').then(showCfg).catch((e) => { st.textContent = e.message; });
+    api('/api/config').then((c) => { st.textContent = c.tmdbEnabled ? `✓ TMDB on (key ${c.tmdbKeyMasked})` : 'TMDB is off'; }).catch((e) => { st.textContent = e.message; });
 
     $('#saveTok').onclick = async () => {
       ls.set('cinedor.token', $('#tok').value.trim());
       const s = $('#tokStatus'); s.textContent = 'Checking…';
-      try { const r = await api('/api'); s.textContent = `✓ Connected — ${r.titles} titles`; state.items = null; state.discover = null; api('/api/config').then(showCfg).catch(() => {}); }
+      try { const r = await api('/api'); s.textContent = `✓ Connected — ${r.titles} titles`; state.items = null; state.discover = null; }
       catch (e) { s.textContent = '✗ ' + e.message; }
-    };
-    $('#saveTmdb').onclick = async () => {
-      const body = { language: $('#lang').value };
-      const k = $('#tmdbKey').value.trim();
-      if (k) body.tmdbKey = k;
-      st.textContent = k ? 'Checking the key with TMDB…' : 'Saving…';
-      try { showCfg(await api('/api/config', { method: 'POST', body: JSON.stringify(body) })); $('#tmdbKey').value = ''; state.discover = null; state.items = null; toast('TMDB settings saved'); }
-      catch (e) { st.textContent = '✗ ' + e.message; }
     };
     $('#clrH').onclick = () => { if (confirm('Clear watch history?')) { ls.set('cinedor.hist', []); toast('History cleared'); } };
     $('#clrF').onclick = () => { if (confirm('Clear all favorites?')) { ls.set('cinedor.fav', []); toast('Favorites cleared'); } };
